@@ -60,6 +60,40 @@ The application will be available at: http://localhost:8000
 
 API documentation (Swagger UI): http://localhost:8000/docs
 
+## Running with Docker
+
+### Build Docker image:
+```bash
+docker build -t backend-internship .
+```
+
+### Run Docker container:
+```bash
+docker run -d -p 8000:8000 --name backend-app backend-internship
+```
+
+### Stop and remove container:
+```bash
+docker stop backend-app
+docker rm backend-app
+```
+
+### View logs:
+```bash
+docker logs backend-app
+```
+
+### Access the application:
+- API: http://localhost:8000/
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+### Development with Docker:
+For development with auto-reload, mount your code as a volume:
+```bash
+docker run -d -p 8000:8000 -v $(pwd)/app:/app/app --name backend-app backend-internship
+```
+
 ## Running Tests
 
 Execute all tests:
