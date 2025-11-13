@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8000
     SECRET_KEY: str = "default-secret-key"
+    CORS_ORIGINS: str = "*"
 
     class Config:
         env_file = ".env"
