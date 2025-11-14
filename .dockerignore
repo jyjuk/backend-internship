@@ -46,6 +46,5 @@ docker-compose.yml
 
 # Database
 *.db
-*.sqlite
 postgres_data/
 redis_data/
