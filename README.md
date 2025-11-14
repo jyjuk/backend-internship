@@ -6,7 +6,7 @@ FastAPI backend application for internship project.
 
 - Python 3.11+
 - pip
-- Docker (optional, for containerized deployment)
+- Docker and Docker Compose
 
 ## Setup
 
@@ -58,6 +58,16 @@ The application uses environment variables for configuration. Key settings inclu
   - Use comma-separated list for specific origins: `http://localhost:3000,https://example.com`
   - **Important**: In production, always specify exact origins instead of `*`
 
+### Database Configuration
+- `POSTGRES_USER`: PostgreSQL username (default: postgres)
+- `POSTGRES_PASSWORD`: PostgreSQL password (default: postgres)
+- `POSTGRES_HOST`: PostgreSQL host (default: postgres)
+- `POSTGRES_PORT`: PostgreSQL port (default: 5432)
+- `POSTGRES_DB`: Database name (default: internship_db)
+- `REDIS_HOST`: Redis host (default: redis)
+- `REDIS_PORT`: Redis port (default: 6379)
+- `REDIS_DB`: Redis database number (default: 0)
+
 ### Security
 - `SECRET_KEY`: Secret key for security features (set in production)
 
@@ -69,10 +79,35 @@ ENVIRONMENT=development
 HOST=0.0.0.0
 PORT=8000
 CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+
+# PostgreSQL
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=internship_db
+
+# Redis
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_DB=0
+
 SECRET_KEY=your-secret-key-here
 ```
 
 ## Running the Application
+
+### Using Docker Compose (Recommended):
+```bash
+# Start all services
+docker-compose up --build
+
+# Stop services
+docker-compose down
+
+# Stop and remove data
+docker-compose down -v
+```
 
 ### Development mode (with auto-reload):
 ```bash
@@ -173,8 +208,10 @@ backend-internship/
 ├── app/
 │   ├── api/
 │   │   └── routes/       # API routes
-│   ├── core/             # Core functionality (config, middleware, etc.)
+│   ├── core/             # Core functionality (config, middleware, database, redis)
 │   │   ├── config.py     # Configuration management
+│   │   ├── database.py   # PostgreSQL connection
+│   │   ├── redis.py      # Redis connection
 │   │   └── middleware.py # Middleware setup (CORS, etc.)
 │   ├── schemas/          # Pydantic schemas
 │   └── main.py           # Application entry point
@@ -183,6 +220,7 @@ backend-internship/
 ├── .env.sample           # Environment template
 ├── .dockerignore         # Docker ignore rules
 ├── Dockerfile            # Docker configuration
+├── docker-compose.yml    # Docker Compose configuration
 ├── requirements.txt      # Python dependencies
 └── README.md
 ```

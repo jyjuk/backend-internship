@@ -34,7 +34,6 @@ tests/
 *.pytest_cache
 
 # Documentation
-README.md
 docs/
 
 # OS
@@ -42,5 +41,10 @@ docs/
 Thumbs.db
 
 # Docker
-Dockerfile
+docker-compose.yml
 .dockerignore
+
+# Database
+*.db
+postgres_data/
+redis_data/
