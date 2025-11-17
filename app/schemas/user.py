@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_serializer
+from uuid import UUID
 
 
 class UserBase(BaseModel):
@@ -30,7 +31,7 @@ class UserUpdateRequest(BaseModel):
 
 class UserDetail(UserBase):
     """Schema for detail user"""
-    id: str
+    id: UUID
     is_active: bool
     is_superuser: bool
     created_at: datetime
@@ -38,13 +39,21 @@ class UserDetail(UserBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+    @field_serializer("id")
+    def serializer_id(self, value: UUID) -> str:
+        return str(value)
+
 
 class User(UserBase):
     """Schema for simple user"""
-    id: str
+    id: UUID
     is_active: bool
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("id")
+    def serialize_id(self, value:UUID) -> str:
+        return str(value)
 
 
 class UserList(BaseModel):

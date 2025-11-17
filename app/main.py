@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from fastapi import FastAPI
 from app.core.config import get_settings
-from app.api.routes import health
+from app.api.routes import health, users
 from app.core.middleware import setup_cors
 from app.core.redis import get_redis_client, close_redis_client
 from app.core.logging_config import setup_logging
@@ -41,6 +41,7 @@ app = FastAPI(
 setup_cors(app, settings)
 
 app.include_router(health.router, tags=["health"])
+app.include_router(users.router, tags=["users"])
 
 if __name__ == "__main__":
     import uvicorn

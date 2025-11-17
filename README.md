@@ -208,14 +208,22 @@ backend-internship/
 ├── app/
 │   ├── api/
 │   │   └── routes/           # API routes
+│   │       ├── health.py     # Health check endpoint
+│   │       └── users.py      # User CRUD endpoints
 │   ├── core/                 # Core functionality
 │   │   ├── config.py         # Configuration management
 │   │   ├── database.py       # PostgreSQL async connection
 │   │   ├── redis.py          # Redis async connection
+│   │   ├── security.py       # Password hashing utilities
 │   │   ├── middleware.py     # Middleware setup (CORS, etc.)
 │   │   └── logging_config.py # Logging configuration
 │   ├── models/               # SQLAlchemy models
+│   │   ├── base.py           # Base mixins (UUID, Timestamp)
 │   │   └── user.py           # User model
+│   ├── repositories/         # Data access layer
+│   │   └── user.py           # User repository
+│   ├── services/             # Business logic layer
+│   │   └── user.py           # User service
 │   ├── schemas/              # Pydantic schemas
 │   │   ├── health.py         # Health check schemas
 │   │   └── user.py           # User schemas
@@ -331,7 +339,91 @@ The application uses Python's logging module configured in `app/core/logging_con
 
 Logs are automatically created in the `logs/` directory (excluded from git).
 
+## User CRUD Operations
 
+### API Endpoints
+
+The application provides RESTful API endpoints for user management:
+
+#### Get All Users
+```bash
+GET /users/?skip=0&limit=100
+```
+Returns paginated list of users.
+
+**Query Parameters:**
+- `skip` (optional): Number of records to skip (default: 0)
+- `limit` (optional): Maximum records to return (default: 100, max: 100)
+
+#### Get User by ID
+```bash
+GET /users/{user_id}
+```
+Returns detailed information about a specific user.
+
+#### Create User
+```bash
+POST /users/
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "username": "username",
+  "password": "password123"
+}
+```
+Creates a new user with hashed password.
+
+#### Update User
+```bash
+PUT /users/{user_id}
+Content-Type: application/json
+
+{
+  "email": "newemail@example.com",
+  "username": "newusername",
+  "password": "newpassword",
+  "is_active": true
+}
+```
+Updates user information. All fields are optional.
+
+#### Delete User
+```bash
+DELETE /users/{user_id}
+```
+Deletes a user from the database.
+
+### Testing with Swagger UI
+
+Access interactive API documentation at http://localhost:8000/docs to test all endpoints.
+
+### Architecture
+
+The application follows a layered architecture:
+
+**Repository Layer** (`app/repositories/`):
+- Handles database operations
+- Provides data access abstraction
+- `UserRepository`: CRUD operations for User model
+
+**Service Layer** (`app/services/`):
+- Contains business logic
+- Handles validation and error handling
+- Implements password hashing
+- `UserService`: User management business logic
+
+**API Layer** (`app/api/routes/`):
+- Defines HTTP endpoints
+- Request/response handling
+- Dependency injection
+
+### Security
+
+- Passwords are hashed using bcrypt before storage
+- Password validation (minimum 8 characters)
+- Email and username uniqueness validation
+- Comprehensive error handling and logging
 
 ## Authors
 
