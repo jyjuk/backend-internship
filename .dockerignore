@@ -48,3 +48,9 @@ docker-compose.yml
 *.db
 postgres_data/
 redis_data/
+alembic/versions/*.py
+!alembic/versions/__init__.py
+
+# Logs
+logs/
+*.log

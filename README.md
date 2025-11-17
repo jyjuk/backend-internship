@@ -207,21 +207,32 @@ pytest -v
 backend-internship/
 ├── app/
 │   ├── api/
-│   │   └── routes/       # API routes
-│   ├── core/             # Core functionality (config, middleware, database, redis)
-│   │   ├── config.py     # Configuration management
-│   │   ├── database.py   # PostgreSQL connection
-│   │   ├── redis.py      # Redis connection
-│   │   └── middleware.py # Middleware setup (CORS, etc.)
-│   ├── schemas/          # Pydantic schemas
-│   └── main.py           # Application entry point
-├── tests/                # Test files
-├── .env                  # Environment variables (not in git)
-├── .env.sample           # Environment template
-├── .dockerignore         # Docker ignore rules
-├── Dockerfile            # Docker configuration
-├── docker-compose.yml    # Docker Compose configuration
-├── requirements.txt      # Python dependencies
+│   │   └── routes/           # API routes
+│   ├── core/                 # Core functionality
+│   │   ├── config.py         # Configuration management
+│   │   ├── database.py       # PostgreSQL async connection
+│   │   ├── redis.py          # Redis async connection
+│   │   ├── middleware.py     # Middleware setup (CORS, etc.)
+│   │   └── logging_config.py # Logging configuration
+│   ├── models/               # SQLAlchemy models
+│   │   └── user.py           # User model
+│   ├── schemas/              # Pydantic schemas
+│   │   ├── health.py         # Health check schemas
+│   │   └── user.py           # User schemas
+│   └── main.py               # Application entry point
+├── alembic/                  # Database migrations
+│   ├── versions/             # Migration files
+│   └── env.py                # Alembic configuration
+├── tests/                    # Test files
+├── logs/                     # Application logs (excluded from git)
+├── .env                      # Environment variables (not in git)
+├── .env.sample               # Environment template
+├── .dockerignore             # Docker ignore rules
+├── .gitignore                # Git ignore rules
+├── Dockerfile                # Docker configuration
+├── docker-compose.yml        # Docker Compose configuration
+├── alembic.ini               # Alembic configuration
+├── requirements.txt          # Python dependencies
 └── README.md
 ```
 
@@ -257,6 +268,70 @@ backend-internship/
 - Always use strong `SECRET_KEY` in production
 - Restrict `CORS_ORIGINS` to specific domains in production
 - Keep dependencies updated
+
+## Database Migrations
+
+This project uses Alembic for database migrations.
+
+### Creating a Migration
+
+After making changes to models in `app/models/`, create a new migration:
+```bash
+# Inside Docker container
+docker-compose exec app alembic revision --autogenerate -m "Description of changes"
+```
+
+### Applying Migrations
+
+Apply pending migrations to the database:
+```bash
+docker-compose exec app alembic upgrade head
+```
+
+### Rollback Migration
+
+Rollback the last migration:
+```bash
+docker-compose exec app alembic downgrade -1
+```
+
+### View Migration History
+```bash
+docker-compose exec app alembic history
+```
+
+### Check Current Version
+```bash
+docker-compose exec app alembic current
+```
+
+## Models and Schemas
+
+### Database Models
+
+Models are defined in `app/models/` using SQLAlchemy ORM:
+- `User` - User model with email, username, password, and timestamps
+
+### Pydantic Schemas
+
+Schemas for request/response validation in `app/schemas/user.py`:
+- `SignUpRequest` - User registration
+- `SignInRequest` - User login
+- `UserUpdateRequest` - Update user information
+- `User` - Simple user response
+- `UserDetail` - Detailed user response with timestamps
+- `UsersList` - List of users response
+
+## Logging
+
+The application uses Python's logging module configured in `app/core/logging_config.py`:
+- Console output: INFO level
+- File output: DEBUG level (`logs/app.log`)
+- Separate loggers for uvicorn and SQLAlchemy
+
+Logs are automatically created in the `logs/` directory (excluded from git).
+
+
 
 ## Authors
 
