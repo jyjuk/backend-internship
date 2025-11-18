@@ -209,12 +209,15 @@ backend-internship/
 │   ├── api/
 │   │   └── routes/           # API routes
 │   │       ├── health.py     # Health check endpoint
-│   │       └── users.py      # User CRUD endpoints
+│   │       ├── users.py      # User CRUD endpoints
+│   │       └── auth.py       # Authentication endpoints
 │   ├── core/                 # Core functionality
 │   │   ├── config.py         # Configuration management
 │   │   ├── database.py       # PostgreSQL async connection
 │   │   ├── redis.py          # Redis async connection
-│   │   ├── security.py       # Password hashing utilities
+│   │   ├── security.py       # Password hashing and JWT utilities
+│   │   ├── auth0.py          # Auth0 token verification
+│   │   ├── dependencies.py   # FastAPI dependencies (auth)
 │   │   ├── middleware.py     # Middleware setup (CORS, etc.)
 │   │   └── logging_config.py # Logging configuration
 │   ├── models/               # SQLAlchemy models
@@ -223,10 +226,12 @@ backend-internship/
 │   ├── repositories/         # Data access layer
 │   │   └── user.py           # User repository
 │   ├── services/             # Business logic layer
-│   │   └── user.py           # User service
+│   │   ├── user.py           # User service
+│   │   └── auth.py           # Authentication service
 │   ├── schemas/              # Pydantic schemas
 │   │   ├── health.py         # Health check schemas
-│   │   └── user.py           # User schemas
+│   │   ├── user.py           # User schemas
+│   │   └── auth.py           # Authentication schemas
 │   └── main.py               # Application entry point
 ├── alembic/                  # Database migrations
 │   ├── versions/             # Migration files
@@ -424,6 +429,107 @@ The application follows a layered architecture:
 - Password validation (minimum 8 characters)
 - Email and username uniqueness validation
 - Comprehensive error handling and logging
+
+## Authentication & Authorization
+
+The application supports two authentication methods:
+
+### 1. JWT Authentication (Login/Password)
+
+Traditional authentication using email and password with JWT tokens.
+
+#### Login Endpoint
+```bash
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+```
+
+**Response:**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer"
+}
+```
+
+#### Get Current User
+```bash
+GET /auth/me
+Authorization: Bearer <your_jwt_token>
+```
+
+**Response:** User details with email, username, timestamps
+
+### 2. Auth0 Integration
+
+OAuth 2.0 authentication using Auth0 with automatic user provisioning.
+
+#### Configuration
+
+Set up Auth0 credentials in `.env`:
+```env
+AUTH0_DOMAIN=your-tenant.auth0.com
+AUTH0_API_AUDIENCE=https://your-api-audience
+AUTH0_ISSUER=https://your-tenant.auth0.com/
+AUTH0_ALGORITHMS=RS256
+```
+
+#### Get Token
+
+1. Create Auth0 account at https://manage.auth0.com/dashboard
+2. Create API with your audience identifier
+3. Create Single Page Application
+4. Get token from https://romanxeo.github.io/internship-token/ using:
+   - Domain: your Auth0 domain
+   - Client ID: from your SPA application
+   - Audience: your API identifier
+
+#### Get Current User (Auth0)
+```bash
+GET /auth/me/auth0
+Authorization: Bearer <your_auth0_token>
+```
+
+**Response:** User details (creates user automatically if doesn't exist)
+
+**Features:**
+- Automatic user creation from Auth0 email
+- Username extracted from email or Auth0 nickname
+- Random secure password generated for Auth0 users
+- Email claim added to access token via Auth0 Action
+
+### Security Features
+
+- **Password Hashing**: bcrypt with salt
+- **JWT Tokens**: HS256 algorithm with configurable expiration
+- **Auth0 Tokens**: RS256 algorithm with JWKS verification
+- **Token Expiration**: 30 minutes (configurable via `JWT_ACCESS_TOKEN_EXPIRE_MINUTES`)
+- **Protected Endpoints**: Require valid Bearer token
+- **User Validation**: Email and username uniqueness checks
+- **Inactive User Check**: Prevents inactive users from accessing resources
+
+### Testing Authentication
+
+Access Swagger UI at http://localhost:8000/docs:
+
+1. **Test JWT Login:**
+   - POST /auth/login with email/password
+   - Copy access token
+   - Click "Authorize" button
+   - Paste token
+   - Try GET /auth/me
+
+2. **Test Auth0:**
+   - Get Auth0 token from token generator
+   - Click "Authorize" button  
+   - Paste Auth0 token
+   - Try GET /auth/me/auth0
+   - User will be created automatically if doesn't exist
 
 ## Authors
 
