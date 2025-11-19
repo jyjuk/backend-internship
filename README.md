@@ -93,6 +93,18 @@ REDIS_PORT=6379
 REDIS_DB=0
 
 SECRET_KEY=your-secret-key-here
+
+# JWT Settings
+JWT_SECRET_KEY=your-secret-key-change-in-production
+JWT_ALGORITHM=HS256
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
+JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# Auth0 Settings (Optional)
+AUTH0_DOMAIN=your-tenant.auth0.com
+AUTH0_API_AUDIENCE=https://your-api-audience
+AUTH0_ISSUER=https://your-tenant.auth0.com/
+AUTH0_ALGORITHMS=RS256
 ```
 
 ## Running the Application
@@ -432,11 +444,11 @@ The application follows a layered architecture:
 
 ## Authentication & Authorization
 
-The application supports two authentication methods:
+The application supports two authentication methods with JWT refresh tokens.
 
 ### 1. JWT Authentication (Login/Password)
 
-Traditional authentication using email and password with JWT tokens.
+Traditional authentication using email and password with JWT tokens (access + refresh).
 
 #### Login Endpoint
 ```bash
@@ -453,17 +465,46 @@ Content-Type: application/json
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "token_type": "bearer"
 }
 ```
 
-#### Get Current User
+**Token Types:**
+- **Access Token**: Short-lived (30 minutes), used for API requests
+- **Refresh Token**: Long-lived (7 days), used to get new access tokens
+
+#### Refresh Access Token
+```bash
+POST /auth/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "<your_refresh_token>"
+}
+```
+
+**Response:**
+```json
+{
+  "access_token": "<new_access_token>",
+  "refresh_token": "<new_refresh_token>",
+  "token_type": "bearer"
+}
+```
+
+#### Get Current User (Unified Endpoint)
 ```bash
 GET /auth/me
-Authorization: Bearer <your_jwt_token>
+Authorization: Bearer <your_jwt_token_or_auth0_token>
 ```
 
 **Response:** User details with email, username, timestamps
+
+**Features:**
+- Single endpoint supports both JWT and Auth0 tokens
+- Tries Auth0 validation first, falls back to JWT
+- Automatically creates user from Auth0 email if doesn't exist
 
 ### 2. Auth0 Integration
 
@@ -484,18 +525,11 @@ AUTH0_ALGORITHMS=RS256
 1. Create Auth0 account at https://manage.auth0.com/dashboard
 2. Create API with your audience identifier
 3. Create Single Page Application
-4. Get token from https://romanxeo.github.io/internship-token/ using:
+4. Configure Post-Login Action to add email claim to token
+5. Get token from https://romanxeo.github.io/internship-token/ using:
    - Domain: your Auth0 domain
    - Client ID: from your SPA application
    - Audience: your API identifier
-
-#### Get Current User (Auth0)
-```bash
-GET /auth/me/auth0
-Authorization: Bearer <your_auth0_token>
-```
-
-**Response:** User details (creates user automatically if doesn't exist)
 
 **Features:**
 - Automatic user creation from Auth0 email
@@ -507,8 +541,9 @@ Authorization: Bearer <your_auth0_token>
 
 - **Password Hashing**: bcrypt with salt
 - **JWT Tokens**: HS256 algorithm with configurable expiration
+- **Refresh Tokens**: Long-lived tokens for obtaining new access tokens (7 days, configurable via `JWT_REFRESH_TOKEN_EXPIRE_DAYS`)
 - **Auth0 Tokens**: RS256 algorithm with JWKS verification
-- **Token Expiration**: 30 minutes (configurable via `JWT_ACCESS_TOKEN_EXPIRE_MINUTES`)
+- **Token Expiration**: Access tokens expire in 30 minutes (configurable via `JWT_ACCESS_TOKEN_EXPIRE_MINUTES`)
 - **Protected Endpoints**: Require valid Bearer token
 - **User Validation**: Email and username uniqueness checks
 - **Inactive User Check**: Prevents inactive users from accessing resources
@@ -519,17 +554,23 @@ Access Swagger UI at http://localhost:8000/docs:
 
 1. **Test JWT Login:**
    - POST /auth/login with email/password
-   - Copy access token
+   - Copy **both** access_token and refresh_token
    - Click "Authorize" button
-   - Paste token
+   - Paste access token
    - Try GET /auth/me
 
-2. **Test Auth0:**
+2. **Test Token Refresh:**
+   - POST /auth/refresh with refresh_token
+   - Receive new access and refresh tokens
+   - Old tokens are still valid until expiration
+
+3. **Test Auth0:**
    - Get Auth0 token from token generator
    - Click "Authorize" button  
    - Paste Auth0 token
-   - Try GET /auth/me/auth0
+   - Try GET /auth/me (same endpoint!)
    - User will be created automatically if doesn't exist
+   - System automatically detects token type (Auth0 or JWT)
 
 ## Authors
 

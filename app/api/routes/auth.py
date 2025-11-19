@@ -2,9 +2,9 @@ import logging
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, get_current_user_auth0
+from app.core.dependencies import get_current_user, get_auth_service
 from app.services.auth import AuthService
-from app.schemas.auth import LoginRequest, TokenResponse
+from app.schemas.auth import LoginRequest, TokenResponse, RefreshTokenRequest
 from app.schemas.user import UserDetail
 from app.models.user import User
 
@@ -14,9 +14,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
+async def login(data: LoginRequest, service: AuthService = Depends(get_auth_service)):
     """Login with email and password"""
-    service = AuthService(db)
     return await service.login(data)
 
 
@@ -27,8 +26,10 @@ async def get_me(current_user: User = Depends(get_current_user)):
     return UserDetail.model_validate(current_user)
 
 
-@router.get("/me/auth0", response_model=UserDetail)
-async def get_me_auth0(current_user: User = Depends(get_current_user_auth0)):
-    """Get current user using Auth0 """
-    logger.info(f"User accessed /me/auth0 endpoint: {current_user.email}")
-    return UserDetail.model_validate(current_user)
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh_token(
+        data: RefreshTokenRequest,
+        service: AuthService = Depends(get_auth_service)
+):
+    """Refresh access token using refresh token"""
+    return await service.refresh_access_token(data.refresh_token)
