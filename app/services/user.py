@@ -5,7 +5,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from app.models.user import User
 from app.repositories.user import UserRepository
-from app.schemas.user import (SignUpRequest, UserUpdateRequest, User as UserSchema, UserDetail, UserList)
+from app.schemas.user import (
+    SignUpRequest,
+    UserUpdateRequest,
+    User as UserSchema,
+    UserDetail,
+    UserList,
+)
+from app.schemas.user import UserSelfUpdateRequest
 from app.core.security import hash_password
 
 logger = logging.getLogger(__name__)
@@ -121,3 +128,76 @@ class UserService:
         except Exception as e:
             logger.error(f"Error deleting user {user_id}: {str(e)}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to delete user")
+
+    async def update_self(self, user_id: UUID, current_user_id: UUID, data: UserSelfUpdateRequest) -> UserDetail:
+        """Update user profile"""
+        try:
+            if user_id != current_user_id:
+                logger.warning(f"User {current_user_id} tried to update user {user_id}")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You can only update your own profile"
+                )
+
+            user = await self.repository.get_by_id(user_id)
+            if not user:
+                logger.warning(f"User update failed: user not found - {user_id}")
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="User not found"
+                )
+            if data.username is not None:
+                existing_user = await self.repository.get_by_username(data.username)
+                if existing_user and existing_user.id != user_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Username already taken"
+                    )
+                user.username = data.username
+
+            if data.password is not None:
+                user.hashed_password = hash_password(data.password)
+
+            updated_user = await self.repository.update(user)
+            logger.info(f"User updated own profile: {updated_user.id}")
+
+            return UserDetail.model_validate(updated_user)
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error updating user profile {user_id}: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update profile"
+            )
+
+    async def delete_self(self, user_id: UUID, current_user: UUID) -> None:
+        """Delete current user"""
+        try:
+            if user_id != current_user:
+                logger.warning(f"User {current_user} tried to delete user {user_id}")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You can only delete your own profile"
+                )
+
+            user = await self.repository.get_by_id(user_id)
+            if not user:
+                logger.warning(f"User delete failed: user not found - {user_id}")
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="User not found"
+                )
+
+            await self.repository.delete(user)
+            logger.info(f"User deleted own profile: {user_id}")
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error delete user {user_id}: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to delete profile"
+            )

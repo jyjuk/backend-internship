@@ -357,7 +357,8 @@ Models are defined in `app/models/` using SQLAlchemy ORM:
 Schemas for request/response validation in `app/schemas/user.py`:
 - `SignUpRequest` - User registration
 - `SignInRequest` - User login
-- `UserUpdateRequest` - Update user information
+- `UserUpdateRequest` - Update user information (admin)
+- `UserSelfUpdateRequest` - Update own profile (username and password only)
 - `User` - Simple user response
 - `UserDetail` - Detailed user response with timestamps
 - `UsersList` - List of users response
@@ -380,6 +381,7 @@ The application provides RESTful API endpoints for user management:
 #### Get All Users
 ```bash
 GET /users/?skip=0&limit=100
+Authorization: Bearer <your_token>
 ```
 Returns paginated list of users.
 
@@ -390,6 +392,7 @@ Returns paginated list of users.
 #### Get User by ID
 ```bash
 GET /users/{user_id}
+Authorization: Bearer <your_token>
 ```
 Returns detailed information about a specific user.
 
@@ -406,9 +409,10 @@ Content-Type: application/json
 ```
 Creates a new user with hashed password.
 
-#### Update User
+#### Update User (Admin)
 ```bash
 PUT /users/{user_id}
+Authorization: Bearer <your_token>
 Content-Type: application/json
 
 {
@@ -418,13 +422,54 @@ Content-Type: application/json
   "is_active": true
 }
 ```
-Updates user information. All fields are optional.
+Updates user information. All fields are optional. Requires authentication.
 
-#### Delete User
+#### Delete User (Admin)
 ```bash
 DELETE /users/{user_id}
+Authorization: Bearer <your_token>
 ```
-Deletes a user from the database.
+Deletes a user from the database. Requires authentication.
+
+### Self-Management Endpoints
+
+Users can manage their own profiles through dedicated `/users/me` endpoints:
+
+#### Get Own Profile
+```bash
+GET /users/me
+Authorization: Bearer <your_token>
+```
+Returns current user's profile information.
+
+#### Update Own Profile
+```bash
+PUT /users/me
+Authorization: Bearer <your_token>
+Content-Type: application/json
+
+{
+  "username": "newusername",
+  "password": "newpassword123"
+}
+```
+Updates current user's username and/or password. Both fields are optional.
+
+**Restrictions:**
+- Users can only update their own username and password
+- Email and is_active fields cannot be modified via this endpoint
+- Returns 403 Forbidden if attempting to modify another user's profile
+
+#### Delete Own Profile
+```bash
+DELETE /users/me
+Authorization: Bearer <your_token>
+```
+Deletes current user's account.
+
+**Restrictions:**
+- Users can only delete their own profile
+- Returns 403 Forbidden if attempting to delete another user's profile
 
 ### Testing with Swagger UI
 
@@ -443,7 +488,7 @@ The application follows a layered architecture:
 - Contains business logic
 - Handles validation and error handling
 - Implements password hashing
-- `UserService`: User management business logic
+- `UserService`: User management business logic with ownership validation
 
 **API Layer** (`app/api/routes/`):
 - Defines HTTP endpoints
@@ -455,6 +500,7 @@ The application follows a layered architecture:
 - Passwords are hashed using bcrypt before storage
 - Password validation (minimum 8 characters)
 - Email and username uniqueness validation
+- Users can only modify their own profiles through `/users/me` endpoints
 - Comprehensive error handling and logging
 
 ## Authentication & Authorization
@@ -563,6 +609,7 @@ AUTH0_ALGORITHMS=RS256
 - **Protected Endpoints**: Require valid Bearer token
 - **User Validation**: Email and username uniqueness checks
 - **Inactive User Check**: Prevents inactive users from accessing resources
+- **Profile Ownership**: Users can only modify/delete their own profiles via `/users/me` endpoints
 
 ### Testing Authentication
 
@@ -587,6 +634,13 @@ Access Swagger UI at http://localhost:8000/docs:
    - Try GET /auth/me (same endpoint!)
    - User will be created automatically if doesn't exist
    - System automatically detects token type (Auth0 or JWT)
+
+4. **Test Profile Self-Management:**
+   - Login and get your access token
+   - Click "Authorize" button
+   - Try GET /users/me (view your profile)
+   - Try PUT /users/me (update your username/password)
+   - Try DELETE /users/me (delete your account)
 
 ## Authors
 
