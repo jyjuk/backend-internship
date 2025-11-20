@@ -68,6 +68,19 @@ The application uses environment variables for configuration. Key settings inclu
 - `REDIS_PORT`: Redis port (default: 6379)
 - `REDIS_DB`: Redis database number (default: 0)
 
+### JWT Configuration
+- `JWT_SECRET_KEY`: Secret key for access tokens (use strong random key in production)
+- `JWT_REFRESH_SECRET_KEY`: Secret key for refresh tokens (must be different from JWT_SECRET_KEY for enhanced security)
+- `JWT_ALGORITHM`: JWT signing algorithm (default: HS256)
+- `JWT_ACCESS_TOKEN_EXPIRE_MINUTES`: Access token expiration time in minutes (default: 30)
+- `JWT_REFRESH_TOKEN_EXPIRE_DAYS`: Refresh token expiration time in days (default: 7)
+
+### Auth0 Configuration (Optional)
+- `AUTH0_DOMAIN`: Auth0 tenant domain
+- `AUTH0_API_AUDIENCE`: Auth0 API identifier
+- `AUTH0_ISSUER`: Auth0 token issuer URL
+- `AUTH0_ALGORITHMS`: Auth0 token signing algorithm (default: RS256)
+
 ### Security
 - `SECRET_KEY`: Secret key for security features (set in production)
 
@@ -93,6 +106,19 @@ REDIS_PORT=6379
 REDIS_DB=0
 
 SECRET_KEY=your-secret-key-here
+
+# JWT Settings
+JWT_SECRET_KEY=your-secret-key-change-in-production-use-openssl-rand-hex-32
+JWT_REFRESH_SECRET_KEY=your-refresh-secret-key-change-in-production-use-openssl-rand-hex-32
+JWT_ALGORITHM=HS256
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
+JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# Auth0 Settings (Optional)
+AUTH0_DOMAIN=your-tenant.auth0.com
+AUTH0_API_AUDIENCE=https://your-api-audience
+AUTH0_ISSUER=https://your-tenant.auth0.com/
+AUTH0_ALGORITHMS=RS256
 ```
 
 ## Running the Application
@@ -209,12 +235,15 @@ backend-internship/
 │   ├── api/
 │   │   └── routes/           # API routes
 │   │       ├── health.py     # Health check endpoint
-│   │       └── users.py      # User CRUD endpoints
+│   │       ├── users.py      # User CRUD endpoints
+│   │       └── auth.py       # Authentication endpoints
 │   ├── core/                 # Core functionality
 │   │   ├── config.py         # Configuration management
 │   │   ├── database.py       # PostgreSQL async connection
 │   │   ├── redis.py          # Redis async connection
-│   │   ├── security.py       # Password hashing utilities
+│   │   ├── security.py       # Password hashing and JWT utilities
+│   │   ├── auth0.py          # Auth0 token verification
+│   │   ├── dependencies.py   # FastAPI dependencies (auth)
 │   │   ├── middleware.py     # Middleware setup (CORS, etc.)
 │   │   └── logging_config.py # Logging configuration
 │   ├── models/               # SQLAlchemy models
@@ -223,10 +252,12 @@ backend-internship/
 │   ├── repositories/         # Data access layer
 │   │   └── user.py           # User repository
 │   ├── services/             # Business logic layer
-│   │   └── user.py           # User service
+│   │   ├── user.py           # User service
+│   │   └── auth.py           # Authentication service
 │   ├── schemas/              # Pydantic schemas
 │   │   ├── health.py         # Health check schemas
-│   │   └── user.py           # User schemas
+│   │   ├── user.py           # User schemas
+│   │   └── auth.py           # Authentication schemas
 │   └── main.py               # Application entry point
 ├── alembic/                  # Database migrations
 │   ├── versions/             # Migration files
@@ -274,6 +305,7 @@ backend-internship/
 
 - Never commit `.env` file to repository
 - Always use strong `SECRET_KEY` in production
+- Use different secret keys for access and refresh tokens
 - Restrict `CORS_ORIGINS` to specific domains in production
 - Keep dependencies updated
 
@@ -424,6 +456,137 @@ The application follows a layered architecture:
 - Password validation (minimum 8 characters)
 - Email and username uniqueness validation
 - Comprehensive error handling and logging
+
+## Authentication & Authorization
+
+The application supports two authentication methods with JWT refresh tokens.
+
+### 1. JWT Authentication (Login/Password)
+
+Traditional authentication using email and password with JWT tokens (access + refresh).
+
+#### Login Endpoint
+```bash
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+```
+
+**Response:**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer"
+}
+```
+
+**Token Types:**
+- **Access Token**: Short-lived (30 minutes), used for API requests
+- **Refresh Token**: Long-lived (7 days), used to get new access tokens
+
+#### Refresh Access Token
+```bash
+POST /auth/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "<your_refresh_token>"
+}
+```
+
+**Response:**
+```json
+{
+  "access_token": "<new_access_token>",
+  "refresh_token": "<new_refresh_token>",
+  "token_type": "bearer"
+}
+```
+
+#### Get Current User (Unified Endpoint)
+```bash
+GET /auth/me
+Authorization: Bearer <your_jwt_token_or_auth0_token>
+```
+
+**Response:** User details with email, username, timestamps
+
+**Features:**
+- Single endpoint supports both JWT and Auth0 tokens
+- Tries Auth0 validation first, falls back to JWT
+- Automatically creates user from Auth0 email if doesn't exist
+
+### 2. Auth0 Integration
+
+OAuth 2.0 authentication using Auth0 with automatic user provisioning.
+
+#### Configuration
+
+Set up Auth0 credentials in `.env`:
+```env
+AUTH0_DOMAIN=your-tenant.auth0.com
+AUTH0_API_AUDIENCE=https://your-api-audience
+AUTH0_ISSUER=https://your-tenant.auth0.com/
+AUTH0_ALGORITHMS=RS256
+```
+
+#### Get Token
+
+1. Create Auth0 account at https://manage.auth0.com/dashboard
+2. Create API with your audience identifier
+3. Create Single Page Application
+4. Configure Post-Login Action to add email claim to token
+5. Get token from https://romanxeo.github.io/internship-token/ using:
+   - Domain: your Auth0 domain
+   - Client ID: from your SPA application
+   - Audience: your API identifier
+
+**Features:**
+- Automatic user creation from Auth0 email
+- Username extracted from email or Auth0 nickname
+- Random secure password generated for Auth0 users
+- Email claim added to access token via Auth0 Action
+
+### Security Features
+
+- **Password Hashing**: bcrypt with salt
+- **JWT Tokens**: HS256 algorithm with configurable expiration
+- **Refresh Tokens**: Long-lived tokens for obtaining new access tokens (7 days, configurable via `JWT_REFRESH_TOKEN_EXPIRE_DAYS`)
+- **Separate Refresh Key**: Refresh tokens use different secret key (`JWT_REFRESH_SECRET_KEY`) for enhanced security
+- **Auth0 Tokens**: RS256 algorithm with JWKS verification
+- **Token Expiration**: Access tokens expire in 30 minutes (configurable via `JWT_ACCESS_TOKEN_EXPIRE_MINUTES`)
+- **Protected Endpoints**: Require valid Bearer token
+- **User Validation**: Email and username uniqueness checks
+- **Inactive User Check**: Prevents inactive users from accessing resources
+
+### Testing Authentication
+
+Access Swagger UI at http://localhost:8000/docs:
+
+1. **Test JWT Login:**
+   - POST /auth/login with email/password
+   - Copy **both** access_token and refresh_token
+   - Click "Authorize" button
+   - Paste access token
+   - Try GET /auth/me
+
+2. **Test Token Refresh:**
+   - POST /auth/refresh with refresh_token
+   - Receive new access and refresh tokens
+   - Old tokens are still valid until expiration
+
+3. **Test Auth0:**
+   - Get Auth0 token from token generator
+   - Click "Authorize" button  
+   - Paste Auth0 token
+   - Try GET /auth/me (same endpoint!)
+   - User will be created automatically if doesn't exist
+   - System automatically detects token type (Auth0 or JWT)
 
 ## Authors
 
