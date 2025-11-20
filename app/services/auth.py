@@ -54,9 +54,9 @@ class AuthService:
     async def refresh_access_token(self, refresh_token: str) -> TokenResponse:
 
         try:
-            from app.core.security import decode_access_token
+            from app.core.security import decode_refresh_token
 
-            payload = decode_access_token(refresh_token)
+            payload = decode_refresh_token(refresh_token)
 
             if not payload or payload.get("type") != "refresh":
                 logger.warning("Invalid refresh token")

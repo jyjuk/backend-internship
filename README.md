@@ -68,6 +68,19 @@ The application uses environment variables for configuration. Key settings inclu
 - `REDIS_PORT`: Redis port (default: 6379)
 - `REDIS_DB`: Redis database number (default: 0)
 
+### JWT Configuration
+- `JWT_SECRET_KEY`: Secret key for access tokens (use strong random key in production)
+- `JWT_REFRESH_SECRET_KEY`: Secret key for refresh tokens (must be different from JWT_SECRET_KEY for enhanced security)
+- `JWT_ALGORITHM`: JWT signing algorithm (default: HS256)
+- `JWT_ACCESS_TOKEN_EXPIRE_MINUTES`: Access token expiration time in minutes (default: 30)
+- `JWT_REFRESH_TOKEN_EXPIRE_DAYS`: Refresh token expiration time in days (default: 7)
+
+### Auth0 Configuration (Optional)
+- `AUTH0_DOMAIN`: Auth0 tenant domain
+- `AUTH0_API_AUDIENCE`: Auth0 API identifier
+- `AUTH0_ISSUER`: Auth0 token issuer URL
+- `AUTH0_ALGORITHMS`: Auth0 token signing algorithm (default: RS256)
+
 ### Security
 - `SECRET_KEY`: Secret key for security features (set in production)
 
@@ -95,7 +108,8 @@ REDIS_DB=0
 SECRET_KEY=your-secret-key-here
 
 # JWT Settings
-JWT_SECRET_KEY=your-secret-key-change-in-production
+JWT_SECRET_KEY=your-secret-key-change-in-production-use-openssl-rand-hex-32
+JWT_REFRESH_SECRET_KEY=your-refresh-secret-key-change-in-production-use-openssl-rand-hex-32
 JWT_ALGORITHM=HS256
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
 JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
@@ -291,6 +305,7 @@ backend-internship/
 
 - Never commit `.env` file to repository
 - Always use strong `SECRET_KEY` in production
+- Use different secret keys for access and refresh tokens
 - Restrict `CORS_ORIGINS` to specific domains in production
 - Keep dependencies updated
 
@@ -542,6 +557,7 @@ AUTH0_ALGORITHMS=RS256
 - **Password Hashing**: bcrypt with salt
 - **JWT Tokens**: HS256 algorithm with configurable expiration
 - **Refresh Tokens**: Long-lived tokens for obtaining new access tokens (7 days, configurable via `JWT_REFRESH_TOKEN_EXPIRE_DAYS`)
+- **Separate Refresh Key**: Refresh tokens use different secret key (`JWT_REFRESH_SECRET_KEY`) for enhanced security
 - **Auth0 Tokens**: RS256 algorithm with JWKS verification
 - **Token Expiration**: Access tokens expire in 30 minutes (configurable via `JWT_ACCESS_TOKEN_EXPIRE_MINUTES`)
 - **Protected Endpoints**: Require valid Bearer token

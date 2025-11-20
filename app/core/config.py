@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     REDIS_DB: int = 0
 
     JWT_SECRET_KEY: str = "your-secret-key-change-in-production"
+    JWT_REFRESH_SECRET_KEY: str = "your-refresh-secret-key-change-in-production"
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
