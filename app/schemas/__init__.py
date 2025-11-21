@@ -9,7 +9,20 @@ from app.schemas.user import (
     UserUpdateRequest,
     UserSelfUpdateRequest
 )
-from app.schemas.auth import TokenResponse, TokenData, LoginRequest, RefreshTokenRequest
+from app.schemas.auth import (
+    TokenResponse,
+    TokenData,
+    LoginRequest,
+    RefreshTokenRequest
+)
+
+from app.schemas.company import (
+    Company,
+    CompanyCreate,
+    CompanyUpdate,
+    CompanyDetail,
+    CompanyList
+)
 
 __all__ = [
     "HealthResponse",
@@ -24,5 +37,10 @@ __all__ = [
     "TokenResponse",
     "LoginRequest",
     "RefreshTokenRequest",
-    "UserSelfUpdateRequest"
+    "UserSelfUpdateRequest",
+    "Company",
+    "CompanyCreate",
+    "CompanyUpdate",
+    "CompanyDetail",
+    "CompanyList"
 ]

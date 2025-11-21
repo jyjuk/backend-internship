@@ -236,7 +236,8 @@ backend-internship/
 │   │   └── routes/           # API routes
 │   │       ├── health.py     # Health check endpoint
 │   │       ├── users.py      # User CRUD endpoints
-│   │       └── auth.py       # Authentication endpoints
+│   │       ├── auth.py       # Authentication endpoints
+│   │       └── companies.py  # Company CRUD endpoints
 │   ├── core/                 # Core functionality
 │   │   ├── config.py         # Configuration management
 │   │   ├── database.py       # PostgreSQL async connection
@@ -248,16 +249,20 @@ backend-internship/
 │   │   └── logging_config.py # Logging configuration
 │   ├── models/               # SQLAlchemy models
 │   │   ├── base.py           # Base mixins (UUID, Timestamp)
-│   │   └── user.py           # User model
+│   │   ├── user.py           # User model
+│   │   └── company.py        # Company model
 │   ├── repositories/         # Data access layer
-│   │   └── user.py           # User repository
+│   │   ├── user.py           # User repository
+│   │   └── company.py        # Company repository
 │   ├── services/             # Business logic layer
 │   │   ├── user.py           # User service
-│   │   └── auth.py           # Authentication service
+│   │   ├── auth.py           # Authentication service
+│   │   └── company.py        # Company service
 │   ├── schemas/              # Pydantic schemas
 │   │   ├── health.py         # Health check schemas
 │   │   ├── user.py           # User schemas
-│   │   └── auth.py           # Authentication schemas
+│   │   ├── auth.py           # Authentication schemas
+│   │   └── company.py        # Company schemas
 │   └── main.py               # Application entry point
 ├── alembic/                  # Database migrations
 │   ├── versions/             # Migration files
@@ -470,6 +475,93 @@ Deletes current user's account.
 **Restrictions:**
 - Users can only delete their own profile
 - Returns 403 Forbidden if attempting to delete another user's profile
+
+## Company CRUD Operations
+
+### API Endpoints
+
+The application provides CRUD operations for managing companies with owner-based permissions.
+
+#### Create Company
+```bash
+POST /companies/
+Authorization: Bearer <your_token>
+Content-Type: application/json
+
+{
+  "name": "My Company",
+  "description": "Company description"
+}
+```
+Creates a new company. Any authenticated user can create a company and automatically becomes the owner.
+
+#### Get All Companies
+```bash
+GET /companies/?skip=0&limit=100
+```
+Returns paginated list of visible companies (no authentication required).
+
+**Query Parameters:**
+- `skip` (optional): Number of records to skip (default: 0)
+- `limit` (optional): Maximum records to return (default: 100, max: 100)
+
+#### Get Company by ID
+```bash
+GET /companies/{company_id}
+```
+Returns detailed information about a specific company.
+
+#### Update Company
+```bash
+PUT /companies/{company_id}
+Authorization: Bearer <your_token>
+Content-Type: application/json
+
+{
+  "name": "Updated Company Name",
+  "description": "Updated description",
+  "is_visible": false
+}
+```
+Updates company information. All fields are optional.
+
+**Restrictions:**
+- Only the company owner can update the company
+- Returns 403 Forbidden if a non-owner attempts to update
+
+#### Delete Company
+```bash
+DELETE /companies/{company_id}
+Authorization: Bearer <your_token>
+```
+Deletes a company.
+
+**Restrictions:**
+- Only the company owner can delete the company
+- Returns 403 Forbidden if a non-owner attempts to delete
+
+### Company Visibility
+
+Companies have a `is_visible` field that controls their visibility:
+- `true` (default): Company appears in public listings
+- `false`: Company is hidden from public listings
+
+### Architecture
+
+**Company Features:**
+- Multiple companies per user (one-to-many relationship)
+- Owner-based permissions (only owner can edit/delete)
+- Visibility control (public or hidden)
+- Automatic timestamps (created_at, updated_at)
+- Cascade delete (when user is deleted, their companies are also deleted)
+
+**Database Schema:**
+- `id` (UUID, Primary Key)
+- `name` (String, required, indexed)
+- `description` (Text, optional)
+- `is_visible` (Boolean, default: true)
+- `owner_id` (UUID, Foreign Key to users)
+- `created_at`, `updated_at` (Timestamps)
 
 ### Testing with Swagger UI
 
