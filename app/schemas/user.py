@@ -52,7 +52,7 @@ class User(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
     @field_serializer("id")
-    def serialize_id(self, value:UUID) -> str:
+    def serialize_id(self, value: UUID) -> str:
         return str(value)
 
 
@@ -60,3 +60,9 @@ class UserList(BaseModel):
     """Schema for list of users"""
     users: list[User]
     total: int
+
+
+class UserSelfUpdateRequest(BaseModel):
+    """Schema for self update user"""
+    username: Optional[str] = Field(None, min_length=3, max_length=100)
+    password: Optional[str] = Field(None, min_length=8, max_length=100)

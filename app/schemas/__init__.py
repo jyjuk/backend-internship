@@ -1,12 +1,13 @@
 from app.schemas.health import HealthResponse
-from app.schemas.user import(
+from app.schemas.user import (
     User,
     UserBase,
     UserDetail,
     UserList,
     SignUpRequest,
     SignInRequest,
-    UserUpdateRequest
+    UserUpdateRequest,
+    UserSelfUpdateRequest
 )
 from app.schemas.auth import TokenResponse, TokenData, LoginRequest, RefreshTokenRequest
 
@@ -22,5 +23,6 @@ __all__ = [
     "TokenData",
     "TokenResponse",
     "LoginRequest",
-    "RefreshTokenRequest"
+    "RefreshTokenRequest",
+    "UserSelfUpdateRequest"
 ]

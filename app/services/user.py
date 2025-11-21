@@ -5,7 +5,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from app.models.user import User
 from app.repositories.user import UserRepository
-from app.schemas.user import (SignUpRequest, UserUpdateRequest, User as UserSchema, UserDetail, UserList)
+from app.schemas.user import (
+    SignUpRequest,
+    UserUpdateRequest,
+    User as UserSchema,
+    UserDetail,
+    UserList,
+)
+from app.schemas.user import UserSelfUpdateRequest
 from app.core.security import hash_password
 
 logger = logging.getLogger(__name__)
@@ -121,3 +128,34 @@ class UserService:
         except Exception as e:
             logger.error(f"Error deleting user {user_id}: {str(e)}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to delete user")
+
+    async def update_self(self, current_user: User, data: UserSelfUpdateRequest) -> UserDetail:
+        """Update current user's own profile (username and/or password only)"""
+        try:
+            # Використовуємо self.repository замість self.user_repository
+            if data.username is not None:
+                existing_user = await self.repository.get_by_username(data.username)
+                if existing_user and existing_user.id != current_user.id:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already taken")
+                current_user.username = data.username
+
+            if data.password is not None:
+                current_user.hashed_password = hash_password(data.password)
+
+            updated_user = await self.repository.update(current_user)
+            logger.info(f"User {current_user.id} updated their own profile")
+            return UserDetail.model_validate(updated_user)
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error updating own profile: {str(e)}")
+            raise HTTPException(status_code=500, detail="Failed to update profile")
+
+    async def delete_self(self, current_user: User) -> None:
+        """Delete current user's own profile"""
+        try:
+            await self.repository.delete(current_user)
+            logger.info(f"User {current_user.id} deleted their own profile")
+        except Exception as e:
+            logger.error(f"Error deleting own profile: {str(e)}")
+            raise HTTPException(status_code=500, detail="Failed to delete profile")
