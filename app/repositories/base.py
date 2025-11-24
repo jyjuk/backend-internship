@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar, Type, Optional, List
+from typing import Generic, TypeVar, Type, Optional, List, Dict, Any
 from uuid import UUID
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,18 +28,36 @@ class BaseRepository(Generic[ModelType]):
         )
         return result.scalar_one_or_none()
 
-    async def get_all(self, skip: int = 0, limit: int = 100) -> List[ModelType]:
+    async def get_all(
+            self,
+            skip: int = 0,
+            limit: int = 100,
+            filters: Optional[Dict[str, Any]] = None,
+            order_by: Optional[Any] = None
+    ) -> List[ModelType]:
         """Get all object with pagination"""
-        result = await self.session.execute(
-            select(self.model).offset(skip).limit(limit)
-        )
+
+        query = select(self.model)
+        if filters:
+            for key, value in filters.items():
+                query = query.where(getattr(self.model, key) == value)
+
+        if order_by is not None:
+            query = query.order_by(order_by)
+
+        query = query.offset(skip).limit(limit)
+        result = await self.session.execute(query)
         return list(result.scalars().all())
 
-    async def count(self) -> int:
+    async def count(self, filters: Optional[Dict[str, Any]] = None) -> int:
         """Count total objects"""
-        result = await self.session.execute(
-            select(func.count(self.model.id))
-        )
+
+        query = select(func.count(self.model.id))
+
+        if filters:
+            for key, value in filters.items():
+                query = query.where(getattr(self.model, key) == value)
+        result = await self.session.execute(query)
         return result.scalar_one()
 
     async def update(self, obj: ModelType) -> ModelType:

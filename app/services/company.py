@@ -44,8 +44,8 @@ class CompanyService:
     async def get_all_companies(self, skip: int = 0, limit: int = 100) -> CompanyList:
         """Get all visible companies with pagination"""
         try:
-            companies = await self.repository.get_all(skip=skip, limit=limit, visible_only=True)
-            total = await self.repository.count(visible_only=True)
+            companies = await self.repository.get_all_visible(skip=skip, limit=limit)
+            total = await self.repository.count_visible()
             logger.info(f"Retrieved {len(companies)} companies (total: {total})")
             return CompanyList(
                 companies=[CompanySchema.model_validate(company) for company in companies],
