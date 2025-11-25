@@ -233,50 +233,60 @@ pytest -v
 backend-internship/
 ├── app/
 │   ├── api/
-│   │   └── routes/           # API routes
-│   │       ├── health.py     # Health check endpoint
-│   │       ├── users.py      # User CRUD endpoints
-│   │       ├── auth.py       # Authentication endpoints
-│   │       └── companies.py  # Company CRUD endpoints
-│   ├── core/                 # Core functionality
-│   │   ├── config.py         # Configuration management
-│   │   ├── database.py       # PostgreSQL async connection
-│   │   ├── redis.py          # Redis async connection
-│   │   ├── security.py       # Password hashing and JWT utilities
-│   │   ├── auth0.py          # Auth0 token verification
-│   │   ├── dependencies.py   # FastAPI dependencies (auth)
-│   │   ├── middleware.py     # Middleware setup (CORS, etc.)
-│   │   └── logging_config.py # Logging configuration
-│   ├── models/               # SQLAlchemy models
-│   │   ├── base.py           # Base mixins (UUID, Timestamp)
-│   │   ├── user.py           # User model
-│   │   └── company.py        # Company model
-│   ├── repositories/         # Data access layer
-│   │   ├── user.py           # User repository
-│   │   └── company.py        # Company repository
-│   ├── services/             # Business logic layer
-│   │   ├── user.py           # User service
-│   │   ├── auth.py           # Authentication service
-│   │   └── company.py        # Company service
-│   ├── schemas/              # Pydantic schemas
-│   │   ├── health.py         # Health check schemas
-│   │   ├── user.py           # User schemas
-│   │   ├── auth.py           # Authentication schemas
-│   │   └── company.py        # Company schemas
-│   └── main.py               # Application entry point
-├── alembic/                  # Database migrations
-│   ├── versions/             # Migration files
-│   └── env.py                # Alembic configuration
-├── tests/                    # Test files
-├── logs/                     # Application logs (excluded from git)
-├── .env                      # Environment variables (not in git)
-├── .env.sample               # Environment template
-├── .dockerignore             # Docker ignore rules
-├── .gitignore                # Git ignore rules
-├── Dockerfile                # Docker configuration
-├── docker-compose.yml        # Docker Compose configuration
-├── alembic.ini               # Alembic configuration
-├── requirements.txt          # Python dependencies
+│   │   └── routes/                # API routes
+│   │       ├── health.py          # Health check endpoint
+│   │       ├── users.py           # User CRUD endpoints
+│   │       ├── auth.py            # Authentication endpoints
+│   │       ├── companies.py       # Company CRUD endpoints
+│   │       └── company_actions.py # Company actions (invitations, requests, members)
+│   ├── core/                      # Core functionality
+│   │   ├── config.py              # Configuration management
+│   │   ├── database.py            # PostgreSQL async connection
+│   │   ├── redis.py               # Redis async connection
+│   │   ├── security.py            # Password hashing and JWT utilities
+│   │   ├── auth0.py               # Auth0 token verification
+│   │   ├── dependencies.py        # FastAPI dependencies (auth)
+│   │   ├── middleware.py          # Middleware setup (CORS, etc.)
+│   │   └── logging_config.py      # Logging configuration
+│   ├── models/                    # SQLAlchemy models
+│   │   ├── base.py                # Base mixins (UUID, Timestamp)
+│   │   ├── user.py                # User model
+│   │   ├── company.py             # Company model
+│   │   ├── company_member.py      # Company membership model
+│   │   ├── company_invitation.py  # Company invitation model
+│   │   └── company_request.py     # Company request model
+│   ├── repositories/              # Data access layer
+│   │   ├── base.py                # Base repository with generic CRUD
+│   │   ├── user.py                # User repository
+│   │   ├── company.py             # Company repository
+│   │   ├── company_member.py      # Company member repository
+│   │   ├── company_invitation.py  # Company invitation repository
+│   │   └── company_request.py     # Company request repository
+│   ├── services/                  # Business logic layer
+│   │   ├── user.py                # User service
+│   │   ├── auth.py                # Authentication service
+│   │   ├── company.py             # Company service
+│   │   └── company_action.py      # Company actions service
+│   ├── schemas/                   # Pydantic schemas
+│   │   ├── health.py              # Health check schemas
+│   │   ├── user.py                # User schemas
+│   │   ├── auth.py                # Authentication schemas
+│   │   ├── company.py             # Company schemas
+│   │   └── company_action.py      # Company action schemas
+│   └── main.py                    # Application entry point
+├── alembic/                       # Database migrations
+│   ├── versions/                  # Migration files
+│   └── env.py                     # Alembic configuration
+├── tests/                         # Test files
+├── logs/                          # Application logs (excluded from git)
+├── .env                           # Environment variables (not in git)
+├── .env.sample                    # Environment template
+├── .dockerignore                  # Docker ignore rules
+├── .gitignore                     # Git ignore rules
+├── Dockerfile                     # Docker configuration
+├── docker-compose.yml             # Docker Compose configuration
+├── alembic.ini                    # Alembic configuration
+├── requirements.txt               # Python dependencies
 └── README.md
 ```
 
@@ -562,6 +572,172 @@ Companies have a `is_visible` field that controls their visibility:
 - `is_visible` (Boolean, default: true)
 - `owner_id` (UUID, Foreign Key to users)
 - `created_at`, `updated_at` (Timestamps)
+
+### Company Actions Models
+
+**company_members** - User memberships in companies (many-to-many)
+- `id` (UUID, Primary Key)
+- `user_id` (UUID, Foreign Key to users)
+- `company_id` (UUID, Foreign Key to companies)
+- Unique constraint on (user_id, company_id)
+- `created_at`, `updated_at` (Timestamps)
+
+**company_invitations** - Owner invitations to users
+- `id` (UUID, Primary Key)
+- `company_id` (UUID, Foreign Key to companies)
+- `invited_user_id` (UUID, Foreign Key to users)
+- `invited_by_id` (UUID, Foreign Key to users)
+- `status` (String: pending, accepted, declined, cancelled)
+- `created_at`, `updated_at` (Timestamps)
+
+**company_requests** - User requests to join companies
+- `id` (UUID, Primary Key)
+- `company_id` (UUID, Foreign Key to companies)
+- `user_id` (UUID, Foreign Key to users)
+- `status` (String: pending, accepted, declined, cancelled)
+- `created_at`, `updated_at` (Timestamps)
+
+### Company Actions
+
+The application provides comprehensive invitation, request, and membership management for companies.
+
+#### Invitations (Owner)
+
+**Create Invitation**
+```bash
+POST /companies/{company_id}/invitations
+Authorization: Bearer <your_token>
+Content-Type: application/json
+
+{
+  "invited_user_id": "uuid-of-user-to-invite"
+}
+```
+Owner invites a user to join the company. Returns invitation details.
+
+**Cancel Invitation**
+```bash
+DELETE /companies/{company_id}/invitations/{invitation_id}
+Authorization: Bearer <your_token>
+```
+Owner cancels a pending invitation.
+
+**List Company Invitations**
+```bash
+GET /companies/{company_id}/invitations?skip=0&limit=100
+Authorization: Bearer <your_token>
+```
+Owner views all invitations sent for the company.
+
+#### Invitations (User)
+
+**Get My Invitations**
+```bash
+GET /companies/invitations/me?skip=0&limit=100
+Authorization: Bearer <your_token>
+```
+User views invitations they have received.
+
+**Accept Invitation**
+```bash
+POST /companies/invitations/{invitation_id}/accept
+Authorization: Bearer <your_token>
+```
+User accepts an invitation and becomes a company member.
+
+**Decline Invitation**
+```bash
+POST /companies/invitations/{invitation_id}/decline
+Authorization: Bearer <your_token>
+```
+User declines an invitation.
+
+#### Requests (User)
+
+**Request to Join**
+```bash
+POST /companies/{company_id}/requests
+Authorization: Bearer <your_token>
+```
+User requests to join a company. Returns request details.
+
+**Cancel Request**
+```bash
+DELETE /companies/{company_id}/requests/{request_id}
+Authorization: Bearer <your_token>
+```
+User cancels their pending request.
+
+**Get My Requests**
+```bash
+GET /companies/requests/me?skip=0&limit=100
+Authorization: Bearer <your_token>
+```
+User views their membership requests.
+
+#### Requests (Owner)
+
+**List Company Requests**
+```bash
+GET /companies/{company_id}/requests?skip=0&limit=100
+Authorization: Bearer <your_token>
+```
+Owner views pending membership requests for the company.
+
+**Accept Request**
+```bash
+POST /companies/{company_id}/requests/{request_id}/accept
+Authorization: Bearer <your_token>
+```
+Owner accepts a request and the user becomes a company member.
+
+**Decline Request**
+```bash
+POST /companies/{company_id}/requests/{request_id}/decline
+Authorization: Bearer <your_token>
+```
+Owner declines a membership request.
+
+#### Members
+
+**List Company Members**
+```bash
+GET /companies/{company_id}/members?skip=0&limit=100
+```
+Public endpoint - anyone can view company members.
+
+**Remove Member**
+```bash
+DELETE /companies/{company_id}/members/{user_id}
+Authorization: Bearer <your_token>
+```
+Owner removes a member from the company.
+
+**Leave Company**
+```bash
+DELETE /companies/{company_id}/members/me
+Authorization: Bearer <your_token>
+```
+User leaves a company they are a member of.
+
+#### Invitation & Request Statuses
+
+Both invitations and requests have the following statuses:
+- `pending` - Awaiting response
+- `accepted` - Accepted (user becomes member)
+- `declined` - Declined/Rejected
+- `cancelled` - Cancelled by sender
+
+#### Business Rules
+
+- Users cannot be invited if already a member
+- Users cannot request to join if already a member
+- Only one pending invitation per user per company
+- Only one pending request per user per company
+- Only company owners can manage invitations and requests
+- Accepting invitation/request automatically creates membership
+- Members list is publicly visible
+
 
 ### Testing with Swagger UI
 
