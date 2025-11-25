@@ -233,60 +233,64 @@ pytest -v
 backend-internship/
 ├── app/
 │   ├── api/
-│   │   └── routes/                # API routes
-│   │       ├── health.py          # Health check endpoint
-│   │       ├── users.py           # User CRUD endpoints
-│   │       ├── auth.py            # Authentication endpoints
-│   │       ├── companies.py       # Company CRUD endpoints
-│   │       └── company_actions.py # Company actions (invitations, requests, members)
-│   ├── core/                      # Core functionality
-│   │   ├── config.py              # Configuration management
-│   │   ├── database.py            # PostgreSQL async connection
-│   │   ├── redis.py               # Redis async connection
-│   │   ├── security.py            # Password hashing and JWT utilities
-│   │   ├── auth0.py               # Auth0 token verification
-│   │   ├── dependencies.py        # FastAPI dependencies (auth)
-│   │   ├── middleware.py          # Middleware setup (CORS, etc.)
-│   │   └── logging_config.py      # Logging configuration
-│   ├── models/                    # SQLAlchemy models
-│   │   ├── base.py                # Base mixins (UUID, Timestamp)
-│   │   ├── user.py                # User model
-│   │   ├── company.py             # Company model
-│   │   ├── company_member.py      # Company membership model
-│   │   ├── company_invitation.py  # Company invitation model
-│   │   └── company_request.py     # Company request model
-│   ├── repositories/              # Data access layer
-│   │   ├── base.py                # Base repository with generic CRUD
-│   │   ├── user.py                # User repository
-│   │   ├── company.py             # Company repository
-│   │   ├── company_member.py      # Company member repository
-│   │   ├── company_invitation.py  # Company invitation repository
-│   │   └── company_request.py     # Company request repository
-│   ├── services/                  # Business logic layer
-│   │   ├── user.py                # User service
-│   │   ├── auth.py                # Authentication service
-│   │   ├── company.py             # Company service
-│   │   └── company_action.py      # Company actions service
-│   ├── schemas/                   # Pydantic schemas
-│   │   ├── health.py              # Health check schemas
-│   │   ├── user.py                # User schemas
-│   │   ├── auth.py                # Authentication schemas
-│   │   ├── company.py             # Company schemas
-│   │   └── company_action.py      # Company action schemas
-│   └── main.py                    # Application entry point
-├── alembic/                       # Database migrations
-│   ├── versions/                  # Migration files
-│   └── env.py                     # Alembic configuration
-├── tests/                         # Test files
-├── logs/                          # Application logs (excluded from git)
-├── .env                           # Environment variables (not in git)
-├── .env.sample                    # Environment template
-├── .dockerignore                  # Docker ignore rules
-├── .gitignore                     # Git ignore rules
-├── Dockerfile                     # Docker configuration
-├── docker-compose.yml             # Docker Compose configuration
-├── alembic.ini                    # Alembic configuration
-├── requirements.txt               # Python dependencies
+│   │   └── routes/                       # API routes
+│   │       ├── health.py                 # Health check endpoint
+│   │       ├── users.py                  # User CRUD endpoints
+│   │       ├── auth.py                   # Authentication endpoints
+│   │       ├── companies.py              # Company CRUD endpoints
+│   │       ├── company_invitations.py    # Company invitation endpoints
+│   │       ├── company_requests.py       # Company request endpoints
+│   │       └── company_members.py        # Company member endpoints
+│   ├── core/                             # Core functionality
+│   │   ├── config.py                     # Configuration management
+│   │   ├── database.py                   # PostgreSQL async connection
+│   │   ├── redis.py                      # Redis async connection
+│   │   ├── security.py                   # Password hashing and JWT utilities
+│   │   ├── auth0.py                      # Auth0 token verification
+│   │   ├── dependencies.py               # FastAPI dependencies (auth)
+│   │   ├── middleware.py                 # Middleware setup (CORS, etc.)
+│   │   └── logging_config.py             # Logging configuration
+│   ├── models/                           # SQLAlchemy models
+│   │   ├── base.py                       # Base mixins (UUID, Timestamp)
+│   │   ├── user.py                       # User model
+│   │   ├── company.py                    # Company model
+│   │   ├── company_member.py             # Company membership model
+│   │   ├── company_invitation.py         # Company invitation model
+│   │   └── company_request.py            # Company request model
+│   ├── repositories/                     # Data access layer
+│   │   ├── base.py                       # Base repository with generic CRUD
+│   │   ├── user.py                       # User repository
+│   │   ├── company.py                    # Company repository
+│   │   ├── company_member.py             # Company member repository
+│   │   ├── company_invitation.py         # Company invitation repository
+│   │   └── company_request.py            # Company request repository
+│   ├── services/                         # Business logic layer
+│   │   ├── user.py                       # User service
+│   │   ├── auth.py                       # Authentication service
+│   │   ├── company.py                    # Company service
+│   │   ├── company_invitation_service.py # Company invitation service
+│   │   ├── company_request_service.py    # Company request service
+│   │   └── company_member_service.py     # Company member service
+│   ├── schemas/                          # Pydantic schemas
+│   │   ├── health.py                     # Health check schemas
+│   │   ├── user.py                       # User schemas
+│   │   ├── auth.py                       # Authentication schemas
+│   │   ├── company.py                    # Company schemas
+│   │   └── company_action.py             # Company action schemas
+│   └── main.py                           # Application entry point
+├── alembic/                              # Database migrations
+│   ├── versions/                         # Migration files
+│   └── env.py                            # Alembic configuration
+├── tests/                                # Test files
+├── logs/                                 # Application logs (excluded from git)
+├── .env                                  # Environment variables (not in git)
+├── .env.sample                           # Environment template
+├── .dockerignore                         # Docker ignore rules
+├── .gitignore                            # Git ignore rules
+├── Dockerfile                            # Docker configuration
+├── docker-compose.yml                    # Docker Compose configuration
+├── alembic.ini                           # Alembic configuration
+├── requirements.txt                      # Python dependencies
 └── README.md
 ```
 
