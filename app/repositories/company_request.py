@@ -1,6 +1,5 @@
 from typing import List, Optional
 from uuid import UUID
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.company_request import CompanyRequest, RequestStatus
 from app.repositories.base import BaseRepository
@@ -47,7 +46,7 @@ class CompanyRequestRepository(BaseRepository[CompanyRequest]):
 
     async def count_company_requests(self, company_id: UUID) -> int:
         """Count pending request for company"""
-        return await self.count(filters={"company_id": company_id, "status": RequestStatus.PENDING.value})
+        return await self.count(filters={"company_id": company_id, "status": RequestStatus.PENDING})
 
     async def count_user_requests(self, user_id: UUID) -> int:
         """Count request made by user"""

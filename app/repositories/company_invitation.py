@@ -1,6 +1,5 @@
 from typing import List, Optional
 from uuid import UUID
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.company_invitation import CompanyInvitation, InvitationStatus
 from app.repositories.base import BaseRepository
@@ -56,4 +55,4 @@ class CompanyInvitationRepository(BaseRepository[CompanyInvitation]):
 
     async def count_user_invitations(self, user_id: UUID) -> int:
         """Count pending invitations for user"""
-        return await self.count(filters={"invited_user_id": user_id, "status": InvitationStatus.PENDING.value})
+        return await self.count(filters={"invited_user_id": user_id, "status": InvitationStatus.PENDING})
