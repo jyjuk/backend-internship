@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, ForeignKey, Enum as SQLEnum
+from sqlalchemy import String, ForeignKey, Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from uuid import UUID
@@ -39,7 +39,11 @@ class CompanyInvitation(Base, UUIDMixin, TimestampMixin):
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False
     )
-    status: Mapped[str] = mapped_column(String(20), default=InvitationStatus.PENDING.value, nullable=False)
+    status: Mapped[InvitationStatus] = mapped_column(
+        SQLEnum(InvitationStatus, native_enum=False),
+        default=InvitationStatus.PENDING,
+        nullable=False
+    )
 
     company: Mapped["Company"] = relationship(back_populates="invitations")
     invited_user: Mapped["User"] = relationship(foreign_keys=[invited_user_id], back_populates="received_invitations")

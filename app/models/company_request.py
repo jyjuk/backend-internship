@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, ForeignKey, Enum as SQLEnum
+from sqlalchemy import String, ForeignKey, Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from uuid import UUID
@@ -22,7 +22,6 @@ class RequestStatus(str, Enum):
 
 class CompanyRequest(Base, UUIDMixin, TimestampMixin):
     """Company membership request model"""
-
     __tablename__ = "company_requests"
 
     company_id: Mapped[UUID] = mapped_column(
@@ -35,7 +34,12 @@ class CompanyRequest(Base, UUIDMixin, TimestampMixin):
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False
     )
-    status: Mapped[str] = mapped_column(String(20), default=RequestStatus.PENDING.value, nullable=False)
+    status: Mapped[RequestStatus] = mapped_column(
+        SQLEnum(RequestStatus, native_enum=False),
+        default=RequestStatus.PENDING,
+        nullable=False
+    )
+
     company: Mapped["Company"] = relationship(back_populates="requests")
     user: Mapped["User"] = relationship(back_populates="company_requests")
 

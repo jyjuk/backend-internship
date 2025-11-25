@@ -14,26 +14,27 @@ class CompanyRequestRepository(BaseRepository[CompanyRequest]):
 
     async def get_pending_request(self, company_id: UUID, user_id: UUID) -> Optional[CompanyRequest]:
         """Get pending request from user to company"""
-
-        result = await self.session.execute(
-            select(CompanyRequest).where(
-                CompanyRequest.company_id == company_id,
-                CompanyRequest.user_id == user_id,
-                CompanyRequest.status == RequestStatus.PENDING.value
-            )
+        result = await self.get_all(
+            limit=1,
+            filters={
+                "company_id": company_id,
+                "user_id": user_id,
+                "status": RequestStatus.PENDING
+            }
         )
-        return result.scalar_one_or_none()
+        return result[0] if result else None
 
     async def get_company_requests(self, company_id: UUID, skip: int = 0, limit: int = 100) -> List[CompanyRequest]:
-        """Get all request for company"""
-
-        result = await self.session.execute(
-            select(CompanyRequest).where(
-                CompanyRequest.company_id == company_id,
-                CompanyRequest.status == RequestStatus.PENDING.value
-            ).offset(skip).limit(limit).order_by(CompanyRequest.created_at.desc())
+        """Get all requests for company"""
+        return await self.get_all(
+            skip=skip,
+            limit=limit,
+            filters={
+                "company_id": company_id,
+                "status": RequestStatus.PENDING
+            },
+            order_by=CompanyRequest.created_at.desc()
         )
-        return list(result.scalars().all())
 
     async def get_user_requests(self, user_id: UUID, skip: int = 0, limit: int = 100) -> List[CompanyRequest]:
         """Get all request made by user"""
