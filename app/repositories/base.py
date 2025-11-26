@@ -1,5 +1,6 @@
 from typing import Generic, TypeVar, Type, Optional, List, Dict, Any
 from uuid import UUID
+from enum import Enum
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import Base
@@ -35,12 +36,13 @@ class BaseRepository(Generic[ModelType]):
             filters: Optional[Dict[str, Any]] = None,
             order_by: Optional[Any] = None
     ) -> List[ModelType]:
-        """Get all object with pagination"""
-
+        """Get all objects with pagination and optional filters"""
         query = select(self.model)
+
         if filters:
             for key, value in filters.items():
-                query = query.where(getattr(self.model, key) == value)
+                filter_value = value.value if isinstance(value, Enum) else value
+                query = query.where(getattr(self.model, key) == filter_value)
 
         if order_by is not None:
             query = query.order_by(order_by)
@@ -50,13 +52,14 @@ class BaseRepository(Generic[ModelType]):
         return list(result.scalars().all())
 
     async def count(self, filters: Optional[Dict[str, Any]] = None) -> int:
-        """Count total objects"""
-
+        """Count total objects with optional filters"""
         query = select(func.count(self.model.id))
 
         if filters:
             for key, value in filters.items():
-                query = query.where(getattr(self.model, key) == value)
+                filter_value = value.value if isinstance(value, Enum) else value
+                query = query.where(getattr(self.model, key) == filter_value)
+
         result = await self.session.execute(query)
         return result.scalar_one()
 
@@ -67,5 +70,6 @@ class BaseRepository(Generic[ModelType]):
         return obj
 
     async def delete(self, obj: ModelType) -> None:
+        """Delete object"""
         await self.session.delete(obj)
         await self.session.commit()

@@ -6,6 +6,9 @@ from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
     from app.models.company import Company
+    from app.models.company_member import CompanyMember
+    from app.models.company_invitation import CompanyInvitation
+    from app.models.company_request import CompanyRequest
 
 
 class User(Base, UUIDMixin, TimestampMixin):
@@ -20,6 +23,18 @@ class User(Base, UUIDMixin, TimestampMixin):
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     companies: Mapped[List["Company"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
+    memberships: Mapped[List["CompanyMember"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    received_invitations: Mapped[List["CompanyInvitation"]] = relationship(
+        foreign_keys="CompanyInvitation.invited_user_id",
+        back_populates="invited_user",
+        cascade="all, delete-orphan"
+    )
+    sent_invitations: Mapped[List["CompanyInvitation"]] = relationship(
+        foreign_keys="CompanyInvitation.invited_by_id",
+        back_populates="invited_by",
+        cascade="all, delete-orphan"
+    )
+    company_requests: Mapped[List["CompanyRequest"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email}, username={self.username})>"

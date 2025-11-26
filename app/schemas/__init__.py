@@ -24,6 +24,17 @@ from app.schemas.company import (
     CompanyList
 )
 
+from app.schemas.company_action import (
+    InvitationCreate,
+    InvitationResponse,
+    InvitationList,
+    RequestCreate,
+    RequestResponse,
+    RequestList,
+    MemberResponse,
+    MemberList
+)
+
 __all__ = [
     "HealthResponse",
     "User",
@@ -42,5 +53,13 @@ __all__ = [
     "CompanyCreate",
     "CompanyUpdate",
     "CompanyDetail",
-    "CompanyList"
+    "CompanyList",
+    "InvitationList",
+    "InvitationResponse",
+    "InvitationCreate",
+    "RequestCreate",
+    "RequestResponse",
+    "RequestList",
+    "MemberResponse",
+    "MemberList"
 ]
