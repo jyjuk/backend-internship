@@ -583,7 +583,8 @@ Companies have a `is_visible` field that controls their visibility:
 - `id` (UUID, Primary Key)
 - `user_id` (UUID, Foreign Key to users)
 - `company_id` (UUID, Foreign Key to companies)
-- Unique constraint on (user_id, company_id)
+- `is_admin` (Boolean, default: false)
+-  Unique constraint on (user_id, company_id)
 - `created_at`, `updated_at` (Timestamps)
 
 **company_invitations** - Owner invitations to users
@@ -723,6 +724,34 @@ DELETE /companies/{company_id}/members/me
 Authorization: Bearer <your_token>
 ```
 User leaves a company they are a member of.
+
+#### Admin Management
+
+**Get Company Admins**
+```bash
+GET /companies/{company_id}/admins?skip=0&limit=100
+```
+Public endpoint - anyone can view company admins.
+
+**Promote Member to Admin**
+```bash
+POST /companies/{company_id}/members/{user_id}/promote
+Authorization: Bearer <your_token>
+```
+Owner promotes a member to admin role.
+
+**Demote Admin to Member**
+```bash
+POST /companies/{company_id}/members/{user_id}/demote
+Authorization: Bearer <your_token>
+```
+Owner demotes an admin back to regular member.
+
+**Business Rules:**
+- Only company owner can promote/demote admins
+- Cannot promote user who is already an admin
+- Cannot demote user who is not an admin
+- Admin status is stored in `company_members` table with `is_admin` boolean field
 
 #### Invitation & Request Statuses
 
