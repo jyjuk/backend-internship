@@ -22,6 +22,42 @@ async def get_company_members(
     return await service.get_company_members(company_id, skip, limit)
 
 
+@router.get("/{company_id}/admins", response_model=MemberList)
+async def get_company_admins(
+        company_id: UUID,
+        skip: int = Query(0, ge=0),
+        limit: int = Query(100, ge=1, le=100),
+        db: AsyncSession = Depends(get_db)
+):
+    """Get all admins of company (public)"""
+    service = CompanyMemberService(db)
+    return await service.get_company_admins(company_id, skip, limit)
+
+
+@router.post("/{company_id}/members/{user_id}/promote", status_code=status.HTTP_204_NO_CONTENT)
+async def promote_to_admin(
+        company_id: UUID,
+        user_id: UUID,
+        current_user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db)
+):
+    """Owner promotes member to admin"""
+    service = CompanyMemberService(db)
+    await service.promote_to_admin(company_id, user_id, current_user)
+
+
+@router.post("/{company_id}/members/{user_id}/demote", status_code=status.HTTP_204_NO_CONTENT)
+async def demote_from_admin(
+        company_id: UUID,
+        user_id: UUID,
+        current_user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db)
+):
+    """Owner demotes admin to regular member"""
+    service = CompanyMemberService(db)
+    await service.demote_from_admin(company_id, user_id, current_user)
+
+
 @router.delete("/{company_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_member(
         company_id: UUID,
