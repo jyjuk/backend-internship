@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, UniqueConstraint, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from uuid import UUID
@@ -29,8 +29,14 @@ class CompanyMember(Base, UUIDMixin, TimestampMixin):
         nullable=False
     )
 
+    is_admin: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False
+    )
+
     user: Mapped["User"] = relationship(back_populates="memberships")
     company: Mapped["Company"] = relationship(back_populates="members")
 
     def __repr__(self) -> str:
-        return f"<CompanyMember(user_id={self.user_id}, company_id={self.company_id})>"
+        return f"<CompanyMember(user_id={self.user_id}, company_id={self.company_id}, is_admin={self.is_admin})>"

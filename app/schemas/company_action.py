@@ -56,7 +56,9 @@ class MemberResponse(BaseModel):
     id: UUID
     user_id: UUID
     company_id: UUID
-    joined_at: datetime
+    is_admin: bool
+    created_at: datetime
+    updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
