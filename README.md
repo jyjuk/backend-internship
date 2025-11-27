@@ -753,6 +753,111 @@ Owner demotes an admin back to regular member.
 - Cannot demote user who is not an admin
 - Admin status is stored in `company_members` table with `is_admin` boolean field
 
+### Quiz System
+
+The application provides a comprehensive quiz system for companies where owners and admins can create, manage quizzes with questions and answers.
+
+#### Quiz Models
+
+**quizzes** - Company quizzes
+- `id` (UUID, Primary Key)
+- `company_id` (UUID, Foreign Key to companies)
+- `title` (String, max 255, required)
+- `description` (Text, optional)
+- `frequency` (Integer, default: 0) - Total participation count
+- `created_at`, `updated_at` (Timestamps)
+
+**questions** - Quiz questions
+- `id` (UUID, Primary Key)
+- `quiz_id` (UUID, Foreign Key to quizzes, cascade delete)
+- `title` (Text, required)
+- `order` (Integer, required) - Question order in quiz
+- `created_at`, `updated_at` (Timestamps)
+
+**answers** - Question answer options
+- `id` (UUID, Primary Key)
+- `question_id` (UUID, Foreign Key to questions, cascade delete)
+- `text` (Text, required)
+- `is_correct` (Boolean, required) - Multiple answers can be correct
+- `order` (Integer, required) - Answer order in question
+- `created_at`, `updated_at` (Timestamps)
+
+#### Quiz Endpoints
+
+**Create Quiz**
+```bash
+POST /companies/{company_id}/quizzes
+Authorization: Bearer <your_token>
+Content-Type: application/json
+
+{
+  "title": "Python Quiz",
+  "description": "Test your Python knowledge",
+  "questions": [
+    {
+      "title": "What is Python?",
+      "order": 0,
+      "answers": [
+        {"text": "A programming language", "is_correct": true, "order": 0},
+        {"text": "A snake", "is_correct": false, "order": 1}
+      ]
+    },
+    {
+      "title": "Is Python dynamically typed?",
+      "order": 1,
+      "answers": [
+        {"text": "Yes", "is_correct": true, "order": 0},
+        {"text": "No", "is_correct": false, "order": 1}
+      ]
+    }
+  ]
+}
+```
+Owner or admin creates a quiz with nested questions and answers.
+
+**Get All Quizzes**
+```bash
+GET /companies/{company_id}/quizzes?skip=0&limit=100
+```
+Public endpoint - anyone can view company quizzes with all questions and answers.
+
+**Get Quiz Details**
+```bash
+GET /companies/{company_id}/quizzes/{quiz_id}
+```
+Public endpoint - get specific quiz with all questions and answers.
+
+**Update Quiz**
+```bash
+PUT /companies/{company_id}/quizzes/{quiz_id}
+Authorization: Bearer <your_token>
+Content-Type: application/json
+
+{
+  "title": "Updated Python Quiz",
+  "questions": [...]
+}
+```
+Owner or admin updates quiz. All fields optional. Questions update replaces all existing questions.
+
+**Delete Quiz**
+```bash
+DELETE /companies/{company_id}/quizzes/{quiz_id}
+Authorization: Bearer <your_token>
+```
+Owner or admin deletes quiz (cascade deletes questions and answers).
+
+#### Quiz Business Rules
+
+- Only company owner or admin can create/update/delete quizzes
+- Each quiz must have minimum 2 questions
+- Each question must have 2-4 answer options
+- At least one answer per question must be correct
+- Multiple correct answers are supported
+- Questions and answers have `order` field for consistent display
+- Quiz listing and details are publicly accessible
+- Frequency tracks total participation (future feature)
+
 #### Invitation & Request Statuses
 
 Both invitations and requests have the following statuses:
