@@ -1,8 +1,8 @@
-"""Add CompanyMember, CompanyInvitation, CompanyRequest models
+"""Initial migration with all tables
 
-Revision ID: c3dbbd087338
+Revision ID: 8e378c1f82e2
 Revises: 
-Create Date: 2025-11-25 07:35:53.338583
+Create Date: 2025-11-27 10:38:06.970679
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'c3dbbd087338'
+revision: str = '8e378c1f82e2'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -51,7 +51,7 @@ def upgrade() -> None:
     sa.Column('company_id', sa.UUID(), nullable=False),
     sa.Column('invited_user_id', sa.UUID(), nullable=False),
     sa.Column('invited_by_id', sa.UUID(), nullable=False),
-    sa.Column('status', sa.String(length=20), nullable=False),
+    sa.Column('status', sa.Enum('PENDING', 'ACCEPTED', 'DECLINED', 'CANCELLED', name='invitationstatus', native_enum=False), nullable=False),
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
@@ -64,6 +64,7 @@ def upgrade() -> None:
     op.create_table('company_members',
     sa.Column('user_id', sa.UUID(), nullable=False),
     sa.Column('company_id', sa.UUID(), nullable=False),
+    sa.Column('is_admin', sa.Boolean(), nullable=False),
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
@@ -76,7 +77,7 @@ def upgrade() -> None:
     op.create_table('company_requests',
     sa.Column('company_id', sa.UUID(), nullable=False),
     sa.Column('user_id', sa.UUID(), nullable=False),
-    sa.Column('status', sa.String(length=20), nullable=False),
+    sa.Column('status', sa.Enum('PENDING', 'ACCEPTED', 'DECLINED', 'CANCELLED', name='requeststatus', native_enum=False), nullable=False),
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
