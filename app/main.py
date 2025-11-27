@@ -14,7 +14,8 @@ from app.api.routes import (
     companies,
     company_invitations,
     company_requests,
-    company_members
+    company_members,
+    quizzes
 )
 from app.core.middleware import setup_cors
 from app.core.redis import get_redis_client, close_redis_client
@@ -55,6 +56,7 @@ app.include_router(companies.router)
 app.include_router(company_invitations.router)
 app.include_router(company_requests.router)
 app.include_router(company_members.router)
+app.include_router(quizzes.router)
 
 if __name__ == "__main__":
     import uvicorn
