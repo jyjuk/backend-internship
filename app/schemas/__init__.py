@@ -34,6 +34,16 @@ from app.schemas.company_action import (
     MemberResponse,
     MemberList
 )
+from app.schemas.quiz import (
+    AnswerCreate,
+    AnswerResponse,
+    QuestionCreate,
+    QuestionResponse,
+    QuizCreate,
+    QuizUpdate,
+    QuizResponse,
+    QuizList
+)
 
 __all__ = [
     "HealthResponse",
@@ -61,5 +71,13 @@ __all__ = [
     "RequestResponse",
     "RequestList",
     "MemberResponse",
-    "MemberList"
+    "MemberList",
+    "AnswerCreate",
+    "AnswerResponse",
+    "QuestionCreate",
+    "QuestionResponse",
+    "QuizCreate",
+    "QuizUpdate",
+    "QuizResponse",
+    "QuizList"
 ]
