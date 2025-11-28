@@ -6,6 +6,7 @@ from app.repositories.company_request import CompanyRequestRepository
 from app.repositories.quiz import QuizRepository
 from app.repositories.question import QuestionRepository
 from app.repositories.answer import AnswerRepository
+from app.repositories.quiz_attempt import QuizAttemptRepository
 
 __all__ = [
     "UserRepository",
@@ -15,5 +16,6 @@ __all__ = [
     "CompanyRequestRepository",
     "QuizRepository",
     "QuestionRepository",
-    "AnswerRepository"
+    "AnswerRepository",
+    "QuizAttemptRepository"
 ]
