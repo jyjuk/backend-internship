@@ -5,6 +5,7 @@ from app.services.company_invitation_service import CompanyInvitationService
 from app.services.company_request_service import CompanyRequestService
 from app.services.company_member_service import CompanyMemberService
 from app.services.quiz_service import QuizService
+from app.services.quiz_attempt_service import QuizAttemptService
 
 __all__ = [
     "UserService",
@@ -13,5 +14,6 @@ __all__ = [
     "CompanyInvitationService",
     "CompanyRequestService",
     "CompanyMemberService",
-    "QuizService"
+    "QuizService",
+    "QuizAttemptService"
 ]
