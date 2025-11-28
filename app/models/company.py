@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from app.models.company_invitation import CompanyInvitation
     from app.models.company_request import CompanyRequest
     from app.models.quiz import Quiz
+    from app.models.quiz_attempt import QuizAttempt
 
 
 class Company(Base, UUIDMixin, TimestampMixin):
@@ -33,8 +34,8 @@ class Company(Base, UUIDMixin, TimestampMixin):
         cascade="all, delete-orphan"
     )
     requests: Mapped[List["CompanyRequest"]] = relationship(back_populates="company", cascade="all, delete-orphan")
-
     quizzes: Mapped[List["Quiz"]] = relationship(back_populates="company", cascade="all, delete-orphan")
+    quiz_attempts: Mapped[List["QuizAttempt"]] = relationship(back_populates="company", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Company(id={self.id}, name={self.name}, owner_id={self.owner_id}>"
