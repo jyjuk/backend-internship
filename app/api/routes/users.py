@@ -8,6 +8,8 @@ from app.core.dependencies import get_current_user
 from app.services.user import UserService
 from app.schemas.user import (SignUpRequest, UserUpdateRequest, UserDetail, UserList, UserSelfUpdateRequest)
 from app.models.user import User
+from app.services.quiz_attempt_service import QuizAttemptService
+from app.schemas.quiz import UserSystemStats
 
 logger = logging.getLogger(__name__)
 
@@ -85,3 +87,13 @@ async def delete_user(user_id: UUID, db: AsyncSession = Depends(get_db)):
     """Delete user"""
     service = UserService(db)
     await service.delete_user(user_id)
+
+
+@router.get("/me/quiz-stats", response_model=UserSystemStats)
+async def get_my_quiz_stats(
+        current_user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db)
+):
+    """Get my quiz statistics across all companies"""
+    service = QuizAttemptService(db)
+    return await service.get_user_system_stats(current_user)

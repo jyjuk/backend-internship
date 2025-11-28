@@ -36,7 +36,6 @@ class QuizAttemptService:
     ) -> QuizAttemptResponse:
         """Submit quiz answers and calculate score"""
         try:
-            # Get quiz with questions and answers
             quiz = await self.quiz_repo.get_quiz_with_questions(quiz_id)
             if not quiz or quiz.company_id != company_id:
                 raise HTTPException(
