@@ -48,7 +48,9 @@ from app.schemas.quiz import (
     QuizAttemptResponse,
     UserQuizStats,
     UserCompanyStats,
-    UserSystemStats
+    UserSystemStats,
+    QuizResponseDetail,
+    QuizResponsesList
 )
 
 __all__ = [
@@ -91,5 +93,7 @@ __all__ = [
     "QuizAttemptResponse",
     "UserSystemStats",
     "UserCompanyStats",
-    "UserQuizStats"
+    "UserQuizStats",
+    "QuizResponseDetail",
+    "QuizResponsesList"
 ]
