@@ -257,7 +257,6 @@ pytest -v
 ```
 
 ## Project Structure
-
 ```
 backend-internship/
 ├── app/
@@ -269,7 +268,8 @@ backend-internship/
 │   │       ├── companies.py              # Company CRUD endpoints
 │   │       ├── company_invitations.py    # Company invitation endpoints
 │   │       ├── company_requests.py       # Company request endpoints
-│   │       └── company_members.py        # Company member endpoints
+│   │       ├── company_members.py        # Company member endpoints
+│   │       └── quizzes.py                # Quiz and quiz attempt endpoints
 │   ├── core/                             # Core functionality
 │   │   ├── config.py                     # Configuration management
 │   │   ├── database.py                   # PostgreSQL async connection
@@ -285,27 +285,39 @@ backend-internship/
 │   │   ├── company.py                    # Company model
 │   │   ├── company_member.py             # Company membership model
 │   │   ├── company_invitation.py         # Company invitation model
-│   │   └── company_request.py            # Company request model
+│   │   ├── company_request.py            # Company request model
+│   │   ├── quiz.py                       # Quiz model
+│   │   ├── question.py                   # Question model
+│   │   ├── answer.py                     # Answer model
+│   │   └── quiz_attempt.py               # Quiz attempt model
 │   ├── repositories/                     # Data access layer
 │   │   ├── base.py                       # Base repository with generic CRUD
 │   │   ├── user.py                       # User repository
 │   │   ├── company.py                    # Company repository
 │   │   ├── company_member.py             # Company member repository
 │   │   ├── company_invitation.py         # Company invitation repository
-│   │   └── company_request.py            # Company request repository
+│   │   ├── company_request.py            # Company request repository
+│   │   ├── quiz.py                       # Quiz repository
+│   │   ├── question.py                   # Question repository
+│   │   ├── answer.py                     # Answer repository
+│   │   └── quiz_attempt.py               # Quiz attempt repository
 │   ├── services/                         # Business logic layer
 │   │   ├── user.py                       # User service
 │   │   ├── auth.py                       # Authentication service
 │   │   ├── company.py                    # Company service
 │   │   ├── company_invitation_service.py # Company invitation service
 │   │   ├── company_request_service.py    # Company request service
-│   │   └── company_member_service.py     # Company member service
+│   │   ├── company_member_service.py     # Company member service
+│   │   ├── quiz_service.py               # Quiz service
+│   │   ├── quiz_attempt_service.py       # Quiz attempt service
+│   │   └── redis_service.py              # Redis service for temporary storage
 │   ├── schemas/                          # Pydantic schemas
 │   │   ├── health.py                     # Health check schemas
 │   │   ├── user.py                       # User schemas
 │   │   ├── auth.py                       # Authentication schemas
 │   │   ├── company.py                    # Company schemas
-│   │   └── company_action.py             # Company action schemas
+│   │   ├── company_action.py             # Company action schemas
+│   │   └── quiz.py                       # Quiz schemas
 │   └── main.py                           # Application entry point
 ├── alembic/                              # Database migrations
 │   ├── versions/                         # Migration files
@@ -322,7 +334,6 @@ backend-internship/
 ├── requirements.txt                      # Python dependencies
 └── README.md
 ```
-
 ## Development Workflow
 
 1. Ensure you're on `develop` branch: `git checkout develop`
@@ -1107,6 +1118,81 @@ Both invitations and requests have the following statuses:
 - Only company owners can manage invitations and requests
 - Accepting invitation/request automatically creates membership
 - Members list is publicly visible
+
+### Redis Workflow
+
+Quiz responses are temporarily stored in Redis for 48 hours, providing quick access to recent answer history.
+
+#### Redis Storage Details
+
+**Key Structure:**
+
+```
+quiz_response:{user_id}:{quiz_id}:{question_id}
+```
+
+**Stored Data:**
+
+```json
+{
+  "user_id": "uuid",
+  "company_id": "uuid",
+  "quiz_id": "uuid",
+  "question_id": "uuid",
+  "answer_ids": [
+    "uuid1",
+    "uuid2"
+  ],
+  "is_correct": true,
+  "answered_at": "2024-01-15T10:30:00Z"
+}
+```
+
+**TTL (Time To Live):** 48 hours (172,800 seconds) - automatically deleted after expiration
+
+#### Redis Endpoints
+
+**Get My Quiz Responses**
+
+```bash
+GET /companies/{company_id}/quizzes/{quiz_id}/my-responses
+Authorization: Bearer <your_token>
+```
+
+Retrieve your stored responses for a specific quiz from Redis (available for 48 hours).
+
+**Response:**
+
+```json
+{
+  "responses": [
+    {
+      "user_id": "user-uuid",
+      "company_id": "company-uuid",
+      "quiz_id": "quiz-uuid",
+      "question_id": "question-uuid",
+      "answer_ids": [
+        "answer-uuid-1",
+        "answer-uuid-2"
+      ],
+      "is_correct": true,
+      "answered_at": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "total": 10
+}
+```
+
+#### Redis Workflow Business Rules
+
+- Responses stored automatically when quiz is submitted
+- Each question response stored separately with unique key
+- TTL of 48 hours enforced at storage time
+- Automatic expiration - no manual cleanup needed
+- Multiple correct answers supported in answer_ids array
+- Responses sorted by answered_at timestamp
+- Only user's own responses accessible
+- Returns empty array if no responses found or expired
 
 ### Testing with Swagger UI
 
