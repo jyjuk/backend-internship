@@ -92,3 +92,53 @@ class QuizList(BaseModel):
     """List of quizzes"""
     quizzes: List[QuizResponse]
     total: int
+
+
+class AnswerSubmission(BaseModel):
+    """Schema for submitting answer to a question"""
+    question_id: UUID = Field(..., description="Question ID")
+    answer_ids: List[UUID] = Field(..., min_length=1, description="Select answer IDs")
+
+
+class QuizSubmission(BaseModel):
+    """Schema for submitting answers"""
+    answers: List[AnswerSubmission] = Field(..., min_length=1, description="List of answers")
+
+
+class QuizAttemptResponse(BaseModel):
+    """Quiz attempt result response"""
+    id: UUID
+    user_id: UUID
+    quiz_id: UUID
+    company_id: UUID
+    score: int
+    total_questions: int
+    correct_answers: int
+    percentage: float
+    completed_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserQuizStats(BaseModel):
+    """User quiz statistics"""
+    total_attempts: int
+    total_questions_answered: int
+    total_correct_answers: int
+    average_score: float
+    last_attempt_at: datetime | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserCompanyStats(BaseModel):
+    """User statistic within a company"""
+    company_id: UUID
+    company_name: str
+    stats: UserQuizStats
+
+
+class UserSystemStats(BaseModel):
+    """User statistic across all companies"""
+    stats: UserQuizStats
+    companies_participated: int

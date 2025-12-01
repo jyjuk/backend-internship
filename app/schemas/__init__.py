@@ -42,7 +42,13 @@ from app.schemas.quiz import (
     QuizCreate,
     QuizUpdate,
     QuizResponse,
-    QuizList
+    QuizList,
+    AnswerSubmission,
+    QuizSubmission,
+    QuizAttemptResponse,
+    UserQuizStats,
+    UserCompanyStats,
+    UserSystemStats
 )
 
 __all__ = [
@@ -79,5 +85,11 @@ __all__ = [
     "QuizCreate",
     "QuizUpdate",
     "QuizResponse",
-    "QuizList"
+    "QuizList",
+    "AnswerSubmission",
+    "QuizSubmission",
+    "QuizAttemptResponse",
+    "UserSystemStats",
+    "UserCompanyStats",
+    "UserQuizStats"
 ]

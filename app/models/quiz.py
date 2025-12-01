@@ -9,6 +9,7 @@ from app.models.base import UUIDMixin, TimestampMixin
 if TYPE_CHECKING:
     from app.models.company import Company
     from app.models.question import Question
+    from app.models.quiz_attempt import QuizAttempt
 
 
 class Quiz(Base, UUIDMixin, TimestampMixin):
@@ -30,6 +31,7 @@ class Quiz(Base, UUIDMixin, TimestampMixin):
         cascade="all, delete-orphan",
         order_by="Question.order"
     )
+    attempts: Mapped[List["QuizAttempt"]] = relationship(back_populates="quiz", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Quiz(id={self.id}, title={self.title}, company_id={self.company_id})>"

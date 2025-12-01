@@ -7,6 +7,7 @@ from app.models.base import UUIDMixin, TimestampMixin
 from app.models.quiz import Quiz
 from app.models.question import Question
 from app.models.answer import Answer
+from app.models.quiz_attempt import QuizAttempt
 
 __all__ = [
     "User",
@@ -20,5 +21,6 @@ __all__ = [
     "RequestStatus",
     "Quiz",
     "Question",
-    "Answer"
+    "Answer",
+    "QuizAttempt"
 ]
