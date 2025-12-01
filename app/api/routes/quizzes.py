@@ -7,7 +7,15 @@ from app.services.quiz_service import QuizService
 from app.schemas.quiz import QuizCreate, QuizUpdate, QuizResponse, QuizList
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.quiz_attempt_service import QuizAttemptService
-from app.schemas.quiz import QuizSubmission, QuizAttemptResponse, UserCompanyStats, UserSystemStats
+from app.schemas.quiz import (
+    QuizSubmission,
+    QuizAttemptResponse,
+    UserCompanyStats,
+    UserSystemStats,
+    QuizResponsesList,
+    QuizResponseDetail
+)
+from app.services.redis_service import RedisService
 
 router = APIRouter(prefix="/companies", tags=["Quizzes"])
 
@@ -94,3 +102,19 @@ async def get_my_company_stats(
     """Get my quiz statistics in this company"""
     service = QuizAttemptService(db)
     return await service.get_user_company_stats(company_id, current_user)
+
+
+@router.get("/{company_id}/quizzes/{quiz_id}/my-responses", response_model=QuizResponsesList)
+async def get_my_quiz_responses(
+        company_id: UUID,
+        quiz_id: UUID,
+        current_user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db)
+):
+    """Get my stored responses for a quiz from Redis (48h TTL)"""
+    service = QuizService(db)
+    await service.get_quiz(company_id, quiz_id)
+    response_data = await RedisService.get_user_quiz_responses(current_user.id, quiz_id)
+    responses = [QuizResponseDetail.from_redis(data) for data in response_data]
+
+    return QuizResponsesList(responses=responses, total=len(responses))
