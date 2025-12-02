@@ -6,7 +6,8 @@ from app.api.routes import (
     company_invitations,
     company_requests,
     company_members,
-    quizzes
+    quizzes,
+    exports
 )
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     "company_invitations",
     "company_requests",
     "company_members",
-    "quizzes"
+    "quizzes",
+    "exports"
 ]
