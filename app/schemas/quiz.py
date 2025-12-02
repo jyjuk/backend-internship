@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from uuid import UUID
 from datetime import datetime
-from typing import List
+from typing import List, Dict, Any
 
 
 class AnswerCreate(BaseModel):
@@ -142,3 +142,33 @@ class UserSystemStats(BaseModel):
     """User statistic across all companies"""
     stats: UserQuizStats
     companies_participated: int
+
+
+class QuizResponseDetail(BaseModel):
+    """Detailed quiz response from Redis"""
+    user_id: UUID
+    company_id: UUID
+    quiz_id: UUID
+    question_id: UUID
+    answer_ids: List[UUID]
+    is_correct: bool
+    answered_at: datetime
+
+    @classmethod
+    def from_redis(cls, data: Dict[str, Any]) -> "QuizResponseDetail":
+        """Create from Redis JSON data"""
+        return cls(
+            user_id=UUID(data["user_id"]),
+            company_id=UUID(data["company_id"]),
+            quiz_id=UUID(data["quiz_id"]),
+            question_id=UUID(data["question_id"]),
+            answer_ids=[UUID(aid) for aid in data["answer_ids"]],
+            is_correct=data["is_correct"],
+            answered_at=datetime.fromisoformat(data["answered_at"])
+        )
+
+
+class QuizResponsesList(BaseModel):
+    """List of quiz response from Redis"""
+    responses: List[QuizResponseDetail]
+    total: int

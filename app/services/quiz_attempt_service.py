@@ -14,6 +14,7 @@ from app.schemas.quiz import (
     UserCompanyStats,
     UserSystemStats
 )
+from app.services.redis_service import RedisService
 
 logger = logging.getLogger(__name__)
 
@@ -67,8 +68,19 @@ class QuizAttemptService:
                 correct_answer_ids = {ans.id for ans in question.answers if ans.is_correct}
                 submitted_answer_ids = set(submitted.answer_ids)
 
-                if correct_answer_ids == submitted_answer_ids:
+                is_correct = correct_answer_ids == submitted_answer_ids
+
+                if is_correct:
                     correct_answers += 1
+
+                await RedisService.store_quiz_response(
+                    user_id=user.id,
+                    company_id=company_id,
+                    quiz_id=quiz_id,
+                    question_id=question.id,
+                    answer_ids=submitted.answer_ids,
+                    is_correct=is_correct
+                )
 
             attempt = QuizAttempt(
                 user_id=user.id,

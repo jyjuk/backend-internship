@@ -6,6 +6,7 @@ from app.services.company_request_service import CompanyRequestService
 from app.services.company_member_service import CompanyMemberService
 from app.services.quiz_service import QuizService
 from app.services.quiz_attempt_service import QuizAttemptService
+from app.services.redis_service import RedisService
 
 __all__ = [
     "UserService",
@@ -15,5 +16,6 @@ __all__ = [
     "CompanyRequestService",
     "CompanyMemberService",
     "QuizService",
-    "QuizAttemptService"
+    "QuizAttemptService",
+    "RedisService"
 ]
