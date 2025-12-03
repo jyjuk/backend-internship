@@ -269,7 +269,8 @@ backend-internship/
 │   │       ├── company_invitations.py    # Company invitation endpoints
 │   │       ├── company_requests.py       # Company request endpoints
 │   │       ├── company_members.py        # Company member endpoints
-│   │       └── quizzes.py                # Quiz and quiz attempt endpoints
+│   │       ├── quizzes.py                # Quiz and quiz attempt endpoints
+│   │       └── exports.py                # Data export endpoints
 │   ├── core/                             # Core functionality
 │   │   ├── config.py                     # Configuration management
 │   │   ├── database.py                   # PostgreSQL async connection
@@ -310,7 +311,8 @@ backend-internship/
 │   │   ├── company_member_service.py     # Company member service
 │   │   ├── quiz_service.py               # Quiz service
 │   │   ├── quiz_attempt_service.py       # Quiz attempt service
-│   │   └── redis_service.py              # Redis service for temporary storage
+│   │   ├── redis_service.py              # Redis service for temporary storage
+│   │   └── export_service.py             # Export service for JSON/CSV formats
 │   ├── schemas/                          # Pydantic schemas
 │   │   ├── health.py                     # Health check schemas
 │   │   ├── user.py                       # User schemas
@@ -1193,6 +1195,104 @@ Retrieve your stored responses for a specific quiz from Redis (available for 48 
 - Responses sorted by answered_at timestamp
 - Only user's own responses accessible
 - Returns empty array if no responses found or expired
+
+### Data Export
+
+Export quiz response data from Redis in JSON or CSV formats with role-based access control.
+
+#### Export Permissions
+
+**Users:**
+
+- Can export their own quiz responses
+
+**Owners/Admins:**
+
+- Can export specific user's responses in their company
+- Can export all responses for a specific quiz
+- Can export all company responses (when quiz_id provided)
+
+#### Export Endpoints
+
+**Export My Responses**
+
+```bash
+GET /export/my-responses?format=json&quiz_id={quiz_id}
+Authorization: Bearer <your_token>
+```
+
+Export your own quiz responses in JSON or CSV format.
+
+**Query Parameters:**
+
+- `format` - json or csv (default: json)
+- `quiz_id` - UUID (required for now)
+
+**Export Specific User's Responses (Owner/Admin)**
+
+```bash
+GET /export/companies/{company_id}/users/{user_id}/responses?format=csv&quiz_id={quiz_id}
+Authorization: Bearer <your_token>
+```
+
+Export a specific user's responses within your company.
+
+**Export Quiz Responses (Owner/Admin)**
+
+```bash
+GET /export/companies/{company_id}/quizzes/{quiz_id}/responses?format=json
+Authorization: Bearer <your_token>
+```
+
+Export all user responses for a specific quiz in your company.
+
+**Export Company Responses (Owner/Admin)**
+
+```bash
+GET /export/companies/{company_id}/responses?format=csv&quiz_id={quiz_id}
+Authorization: Bearer <your_token>
+```
+
+Export company quiz responses (requires quiz_id).
+
+#### Export Formats
+
+**JSON Format:**
+
+```json
+[
+  {
+    "user_id": "uuid",
+    "company_id": "uuid",
+    "quiz_id": "uuid",
+    "question_id": "uuid",
+    "answer_ids": [
+      "uuid1",
+      "uuid2"
+    ],
+    "is_correct": true,
+    "answered_at": "2024-01-15T10:30:00Z"
+  }
+]
+```
+
+**CSV Format:**
+
+```csv
+user_id,company_id,quiz_id,question_id,answer_ids,is_correct,answered_at
+uuid1,uuid2,uuid3,uuid4,"[""uuid5"",""uuid6""]",true,2024-01-15T10:30:00Z
+```
+
+#### Export Business Rules
+
+- Data exported from Redis (48-hour TTL applies)
+- CSV answer_ids formatted as JSON array string
+- Filenames auto-generated based on export type
+- Content-Disposition header sets download filename
+- Owner/Admin permissions verified before export
+- User must be company member for user-specific exports
+- Empty results return empty array (JSON) or empty string (CSV)
+- Only responses stored in Redis are exported (within 48h)
 
 ### Testing with Swagger UI
 
