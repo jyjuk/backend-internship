@@ -16,7 +16,8 @@ from app.api.routes import (
     company_requests,
     company_members,
     quizzes,
-    exports
+    exports,
+    analytics
 )
 from app.core.middleware import setup_cors
 from app.core.redis import get_redis_client, close_redis_client
@@ -59,6 +60,7 @@ app.include_router(company_requests.router)
 app.include_router(company_members.router)
 app.include_router(quizzes.router)
 app.include_router(exports.router)
+app.include_router(analytics.router)
 
 if __name__ == "__main__":
     import uvicorn
