@@ -76,3 +76,187 @@ class QuizAttemptRepository(BaseRepository[QuizAttempt]):
             "last_attempt": row.last_attempt,
             "companies_count": row.companies_count or 0
         }
+
+    async def get_user_overall_stats_sql(self, user_id: UUID) -> dict:
+        """Get user overall statistics using SQL aggregation"""
+        from sqlalchemy import select, func, distinct, case
+
+        stmt = select(
+            func.count(QuizAttempt.id).label("total_attempts"),
+            func.count(distinct(QuizAttempt.company_id)).label("total_companies"),
+            func.count(distinct(QuizAttempt.quiz_id)).label("total_quizzes"),
+            func.avg(
+                (QuizAttempt.score * 100.0) / QuizAttempt.total_questions
+            ).label("average_score")
+        ).where(QuizAttempt.user_id == user_id)
+
+        result = await self.session.execute(stmt)
+        row = result.one()
+
+        return {
+            "total_attempts": row.total_attempts or 0,
+            "total_companies": row.total_companies or 0,
+            "total_quizzes": row.total_quizzes or 0,
+            "average_score": float(row.average_score) if row.average_score else 0.0
+        }
+
+    async def get_user_quiz_stats_sql(self, user_id: UUID) -> list[dict]:
+        """Get user statistics per quiz using SQL aggregation"""
+        from sqlalchemy import select, func
+
+        stmt = select(
+            QuizAttempt.quiz_id,
+            func.count(QuizAttempt.id).label("attempts_count"),
+            func.avg(
+                (QuizAttempt.score * 100.0) / QuizAttempt.total_questions
+            ).label("average_score"),
+            func.max(QuizAttempt.created_at).label("last_attempt_at")
+        ).where(
+            QuizAttempt.user_id == user_id
+        ).group_by(
+            QuizAttempt.quiz_id
+        )
+
+        result = await self.session.execute(stmt)
+        rows = result.all()
+
+        return [
+            {
+                "quiz_id": row.quiz_id,
+                "attempts_count": row.attempts_count,
+                "average_score": float(row.average_score) if row.average_score else 0.0,
+                "last_attempt_at": row.last_attempt_at
+            }
+            for row in rows
+        ]
+
+    async def get_company_overview_stats_sql(self, company_id: UUID) -> dict:
+        """Get company overview statistics using SQL aggregation"""
+        from sqlalchemy import select, func
+
+        stmt = select(
+            func.count(QuizAttempt.id).label("total_attempts"),
+            func.avg(
+                (QuizAttempt.score * 100.0) / QuizAttempt.total_questions
+            ).label("average_score")
+        ).where(QuizAttempt.company_id == company_id)
+
+        result = await self.session.execute(stmt)
+        row = result.one()
+
+        return {
+            "total_attempts": row.total_attempts or 0,
+            "average_score": float(row.average_score) if row.average_score else 0.0
+        }
+
+    async def get_company_members_stats_sql(self, company_id: UUID) -> list[dict]:
+        """Get statistics for all company members using SQL aggregation"""
+        from sqlalchemy import select, func
+
+        stmt = select(
+            QuizAttempt.user_id,
+            func.count(QuizAttempt.id).label("total_attempts"),
+            func.avg(
+                (QuizAttempt.score * 100.0) / QuizAttempt.total_questions
+            ).label("average_score"),
+            func.max(QuizAttempt.created_at).label("last_attempt_at")
+        ).where(
+            QuizAttempt.company_id == company_id
+        ).group_by(
+            QuizAttempt.user_id
+        )
+
+        result = await self.session.execute(stmt)
+        rows = result.all()
+
+        return [
+            {
+                "user_id": row.user_id,
+                "total_attempts": row.total_attempts,
+                "average_score": float(row.average_score) if row.average_score else 0.0,
+                "last_attempt_at": row.last_attempt_at
+            }
+            for row in rows
+        ]
+
+    async def get_company_quizzes_stats_sql(self, company_id: UUID) -> list[dict]:
+        """Get statistics for all company quizzes using SQL aggregation"""
+        from sqlalchemy import select, func, distinct
+
+        stmt = select(
+            QuizAttempt.quiz_id,
+            func.count(QuizAttempt.id).label("total_attempts"),
+            func.avg(
+                (QuizAttempt.score * 100.0) / QuizAttempt.total_questions
+            ).label("average_score"),
+            func.count(distinct(QuizAttempt.user_id)).label("unique_users")
+        ).where(
+            QuizAttempt.company_id == company_id
+        ).group_by(
+            QuizAttempt.quiz_id
+        )
+
+        result = await self.session.execute(stmt)
+        rows = result.all()
+
+        return [
+            {
+                "quiz_id": row.quiz_id,
+                "total_attempts": row.total_attempts,
+                "average_score": float(row.average_score) if row.average_score else 0.0,
+                "unique_users": row.unique_users
+            }
+            for row in rows
+        ]
+
+    async def get_user_company_quiz_stats_sql(
+            self,
+            user_id: UUID,
+            company_id: UUID
+    ) -> dict:
+        """Get user statistics in specific company using SQL aggregation"""
+        from sqlalchemy import select, func
+
+        overall_stmt = select(
+            func.count(QuizAttempt.id).label("total_attempts"),
+            func.avg(
+                (QuizAttempt.score * 100.0) / QuizAttempt.total_questions
+            ).label("average_score")
+        ).where(
+            QuizAttempt.user_id == user_id,
+            QuizAttempt.company_id == company_id
+        )
+
+        result = await self.session.execute(overall_stmt)
+        overall = result.one()
+
+        quiz_stmt = select(
+            QuizAttempt.quiz_id,
+            func.count(QuizAttempt.id).label("attempts_count"),
+            func.avg(
+                (QuizAttempt.score * 100.0) / QuizAttempt.total_questions
+            ).label("average_score"),
+            func.max(QuizAttempt.created_at).label("last_attempt_at")
+        ).where(
+            QuizAttempt.user_id == user_id,
+            QuizAttempt.company_id == company_id
+        ).group_by(
+            QuizAttempt.quiz_id
+        )
+
+        result = await self.session.execute(quiz_stmt)
+        quiz_rows = result.all()
+
+        return {
+            "total_attempts": overall.total_attempts or 0,
+            "average_score": float(overall.average_score) if overall.average_score else 0.0,
+            "quizzes": [
+                {
+                    "quiz_id": row.quiz_id,
+                    "attempts_count": row.attempts_count,
+                    "average_score": float(row.average_score) if row.average_score else 0.0,
+                    "last_attempt_at": row.last_attempt_at
+                }
+                for row in quiz_rows
+            ]
+        }
