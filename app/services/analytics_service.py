@@ -1,15 +1,12 @@
 from typing import Dict, List
 from uuid import UUID
 from datetime import datetime
-from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 from fastapi import HTTPException, status
 import logging
+
 from app.models.user import User
 from app.models.quiz_attempt import QuizAttempt
-from app.models.company_member import CompanyMember
-from app.models.quiz import Quiz
 from app.repositories.quiz_attempt import QuizAttemptRepository
 from app.repositories.company import CompanyRepository
 from app.repositories.company_member import CompanyMemberRepository
@@ -64,7 +61,10 @@ class AnalyticsService:
         """Get ISO week number in format: 2024-W48"""
         return f"{date.year}-W{date.isocalendar()[1]:02d}"
 
-    async def _calculate_weekly_trends(self, attempts: List[QuizAttempt]) -> List[WeeklyTrend]:
+    async def _calculate_weekly_trends(
+            self,
+            attempts: List[QuizAttempt]
+    ) -> List[WeeklyTrend]:
         """Calculate weekly trends from attempts"""
         if not attempts:
             return []
@@ -117,15 +117,10 @@ class AnalyticsService:
                 return UserQuizAnalyticsList(quizzes=[])
 
             quiz_ids = [stat["quiz_id"] for stat in quiz_stats]
-            stmt = select(QuizAttempt).where(
-                QuizAttempt.user_id == user.id,
-                QuizAttempt.quiz_id.in_(quiz_ids)
-            ).options(
-                selectinload(QuizAttempt.quiz),
-                selectinload(QuizAttempt.company)
+            attempts = await self.attempt_repo.get_user_quiz_attempts_with_relations(
+                user.id,
+                quiz_ids
             )
-            result = await self.session.execute(stmt)
-            attempts = result.scalars().all()
 
             quiz_attempts: Dict[UUID, List[QuizAttempt]] = {}
             quiz_info: Dict[UUID, tuple] = {}
@@ -150,7 +145,7 @@ class AnalyticsService:
                         attempts_count=stat["attempts_count"],
                         last_attempt_at=stat["last_attempt_at"],
                         weekly_trend=weekly_trend
-                        )
+                    )
                 )
 
             return UserQuizAnalyticsList(quizzes=quiz_analytics)
@@ -161,17 +156,17 @@ class AnalyticsService:
                 detail="Failed to get analytics"
             )
 
-    async def get_user_recent_attempts(self, user: User, limit: int = 10) -> RecentAttemptsList:
+    async def get_user_recent_attempts(
+            self,
+            user: User,
+            limit: int = 10
+    ) -> RecentAttemptsList:
         """Get user's recent quiz attempts"""
         try:
-            stmt = select(QuizAttempt).where(
-                QuizAttempt.user_id == user.id
-            ).options(
-                selectinload(QuizAttempt.quiz),
-                selectinload(QuizAttempt.company)
-            ).order_by(QuizAttempt.created_at.desc()).limit(limit)
-            result = await self.session.execute(stmt)
-            attempts = result.scalars().all()
+            attempts = await self.attempt_repo.get_recent_attempts_with_relations(
+                user.id,
+                limit
+            )
             recent_attempts = [
                 RecentAttempt(
                     quiz_id=attempt.quiz_id,
@@ -201,18 +196,10 @@ class AnalyticsService:
         try:
             await self._check_owner_or_admin(company_id, requester.id)
             company = await self.company_repo.get_by_id(company_id)
-            stmt = select(func.count(CompanyMember.id)).where(
-                CompanyMember.company_id == company_id
-            )
-            result = await self.session.execute(stmt)
-            total_members = result.scalar() or 0
-            stmt = select(func.count(Quiz.id)).where(Quiz.company_id == company_id)
-            result = await self.session.execute(stmt)
-            total_quizzes = result.scalar() or 0
+            total_members = await self.member_repo.count_by_company(company_id)
+            total_quizzes = await self.quiz_repo.count_by_company(company_id)
             stats = await self.attempt_repo.get_company_overview_stats_sql(company_id)
-            stmt = select(QuizAttempt).where(QuizAttempt.company_id == company_id)
-            result = await self.session.execute(stmt)
-            attempts = result.scalars().all()
+            attempts = await self.attempt_repo.get_by_company(company_id)
 
             weekly_trend = await self._calculate_weekly_trends(attempts) if attempts else []
 
@@ -242,11 +229,7 @@ class AnalyticsService:
         """Get analytics for all company members using SQL aggregation"""
         try:
             await self._check_owner_or_admin(company_id, requester.id)
-            stmt = select(CompanyMember).where(
-                CompanyMember.company_id == company_id
-            ).options(selectinload(CompanyMember.user))
-            result = await self.session.execute(stmt)
-            members = result.scalars().all()
+            members = await self.member_repo.get_by_company_with_user(company_id)
             members_stats = await self.attempt_repo.get_company_members_stats_sql(company_id)
             stats_dict = {stat["user_id"]: stat for stat in members_stats}
 
@@ -286,22 +269,12 @@ class AnalyticsService:
         """Get analytics for all company quizzes with completion rates using SQL aggregation"""
         try:
             await self._check_owner_or_admin(company_id, requester.id)
-            stmt = select(Quiz).where(Quiz.company_id == company_id)
-            result = await self.session.execute(stmt)
-            quizzes = result.scalars().all()
-            stmt = select(
-                func.count(CompanyMember.id)
-            ).where(
-                CompanyMember.company_id == company_id
-            )
-            result = await self.session.execute(stmt)
-            total_members = result.scalar() or 1
 
+            quizzes = await self.quiz_repo.get_by_company(company_id)
+            total_members = await self.member_repo.count_by_company(company_id) or 1
             quizzes_stats = await self.attempt_repo.get_company_quizzes_stats_sql(company_id)
             stats_dict = {stat["quiz_id"]: stat for stat in quizzes_stats}
-            stmt = select(QuizAttempt).where(QuizAttempt.company_id == company_id)
-            result = await self.session.execute(stmt)
-            all_attempts = result.scalars().all()
+            all_attempts = await self.attempt_repo.get_by_company(company_id)
             quiz_attempts_map: Dict[UUID, List[QuizAttempt]] = {}
             for attempt in all_attempts:
                 if attempt.quiz_id not in quiz_attempts_map:
@@ -360,24 +333,17 @@ class AnalyticsService:
                     detail="User is not a member of this company"
                 )
             company = await self.company_repo.get_by_id(company_id)
-
             stats = await self.attempt_repo.get_user_company_quiz_stats_sql(user_id, company_id)
 
             quiz_ids = [q["quiz_id"] for q in stats["quizzes"]]
             if quiz_ids:
-                stmt = select(Quiz).where(Quiz.id.in_(quiz_ids))
-                result = await self.session.execute(stmt)
-                quizzes_list = result.scalars().all()
+                quizzes_list = await self.quiz_repo.get_by_ids(quiz_ids)
                 quizzes_dict = {quiz.id: quiz for quiz in quizzes_list}
 
-                stmt = select(QuizAttempt).where(
-                    and_(
-                        QuizAttempt.user_id == user_id,
-                        QuizAttempt.company_id == company_id
-                    )
+                attempts = await self.attempt_repo.get_by_user_and_company_with_relations(
+                    user_id,
+                    company_id
                 )
-                result = await self.session.execute(stmt)
-                attempts = result.scalars().all()
 
                 quiz_attempts_map: Dict[UUID, List[QuizAttempt]] = {}
                 for attempt in attempts:

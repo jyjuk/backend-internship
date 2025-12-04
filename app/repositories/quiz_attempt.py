@@ -1,7 +1,8 @@
 from typing import List, Optional
 from uuid import UUID
-from sqlalchemy import select, func
+from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from app.models.quiz_attempt import QuizAttempt
 from app.repositories.base import BaseRepository
 
@@ -12,7 +13,12 @@ class QuizAttemptRepository(BaseRepository[QuizAttempt]):
     def __init__(self, session: AsyncSession):
         super().__init__(QuizAttempt, session)
 
-    async def get_user_attempts(self, user_id: UUID, skip: int = 0, limit: int = 100) -> List[QuizAttempt]:
+    async def get_user_attempts(
+            self,
+            user_id: UUID,
+            skip: int = 0,
+            limit: int = 100
+    ) -> List[QuizAttempt]:
         """Get all attempts for a user"""
         return await self.get_all(
             skip=skip,
@@ -21,14 +27,22 @@ class QuizAttemptRepository(BaseRepository[QuizAttempt]):
             order_by=QuizAttempt.created_at.desc()
         )
 
-    async def get_user_company_attempts(self, user_id: UUID, company_id: UUID) -> List[QuizAttempt]:
+    async def get_user_company_attempts(
+            self,
+            user_id: UUID,
+            company_id: UUID
+    ) -> List[QuizAttempt]:
         """Get all attempts for a user in a specific company"""
         return await self.get_all(
             filters={"user_id": user_id, "company_id": company_id},
             order_by=QuizAttempt.created_at.desc()
         )
 
-    async def get_last_attempt(self, user_id: UUID, quiz_id: UUID) -> Optional[QuizAttempt]:
+    async def get_last_attempt(
+            self,
+            user_id: UUID,
+            quiz_id: UUID
+    ) -> Optional[QuizAttempt]:
         """Get user`s last attempt for a specific quiz"""
         result = await self.get_all(
             limit=1,
@@ -77,14 +91,78 @@ class QuizAttemptRepository(BaseRepository[QuizAttempt]):
             "companies_count": row.companies_count or 0
         }
 
+    async def get_by_company(self, company_id: UUID) -> List[QuizAttempt]:
+        """Get all attempts for a company"""
+        return await self.get_all(
+            filters={"company_id": company_id},
+            order_by=QuizAttempt.created_at.desc()
+        )
+
+    async def get_user_quiz_attempts_with_relations(
+            self,
+            user_id: UUID,
+            quiz_ids: List[UUID]
+    ) -> List[QuizAttempt]:
+        """Get user attempts for specific quizzes with quiz and company relations loaded"""
+        stmt = select(
+            QuizAttempt
+        ).where(
+            QuizAttempt.user_id == user_id,
+            QuizAttempt.quiz_id.in_(quiz_ids)
+        ).options(
+            selectinload(QuizAttempt.quiz),
+            selectinload(QuizAttempt.company)
+        )
+
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
+    async def get_recent_attempts_with_relations(
+            self,
+            user_id: UUID,
+            limit: int = 10
+    ) -> List[QuizAttempt]:
+        """Get user's recent attempts with quiz and company relations loaded"""
+        stmt = select(
+            QuizAttempt
+        ).where(
+            QuizAttempt.user_id == user_id
+        ).options(
+            selectinload(QuizAttempt.quiz),
+            selectinload(QuizAttempt.company)
+        ).order_by(
+            QuizAttempt.created_at.desc()
+        ).limit(limit)
+
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
+    async def get_by_user_and_company_with_relations(
+            self,
+            user_id: UUID,
+            company_id: UUID
+    ) -> List[QuizAttempt]:
+        """Get user attempts in company with quiz relations loaded"""
+        stmt = select(
+            QuizAttempt
+        ).where(
+            and_(
+                QuizAttempt.user_id == user_id,
+                QuizAttempt.company_id == company_id
+            )
+        ).options(
+            selectinload(QuizAttempt.quiz)
+        )
+
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
     async def get_user_overall_stats_sql(self, user_id: UUID) -> dict:
         """Get user overall statistics using SQL aggregation"""
-        from sqlalchemy import select, func, distinct, case
-
         stmt = select(
             func.count(QuizAttempt.id).label("total_attempts"),
-            func.count(distinct(QuizAttempt.company_id)).label("total_companies"),
-            func.count(distinct(QuizAttempt.quiz_id)).label("total_quizzes"),
+            func.count(func.distinct(QuizAttempt.company_id)).label("total_companies"),
+            func.count(func.distinct(QuizAttempt.quiz_id)).label("total_quizzes"),
             func.avg(
                 (QuizAttempt.score * 100.0) / QuizAttempt.total_questions
             ).label("average_score")
@@ -102,8 +180,6 @@ class QuizAttemptRepository(BaseRepository[QuizAttempt]):
 
     async def get_user_quiz_stats_sql(self, user_id: UUID) -> list[dict]:
         """Get user statistics per quiz using SQL aggregation"""
-        from sqlalchemy import select, func
-
         stmt = select(
             QuizAttempt.quiz_id,
             func.count(QuizAttempt.id).label("attempts_count"),
@@ -132,8 +208,6 @@ class QuizAttemptRepository(BaseRepository[QuizAttempt]):
 
     async def get_company_overview_stats_sql(self, company_id: UUID) -> dict:
         """Get company overview statistics using SQL aggregation"""
-        from sqlalchemy import select, func
-
         stmt = select(
             func.count(QuizAttempt.id).label("total_attempts"),
             func.avg(
@@ -151,8 +225,6 @@ class QuizAttemptRepository(BaseRepository[QuizAttempt]):
 
     async def get_company_members_stats_sql(self, company_id: UUID) -> list[dict]:
         """Get statistics for all company members using SQL aggregation"""
-        from sqlalchemy import select, func
-
         stmt = select(
             QuizAttempt.user_id,
             func.count(QuizAttempt.id).label("total_attempts"),
@@ -181,15 +253,13 @@ class QuizAttemptRepository(BaseRepository[QuizAttempt]):
 
     async def get_company_quizzes_stats_sql(self, company_id: UUID) -> list[dict]:
         """Get statistics for all company quizzes using SQL aggregation"""
-        from sqlalchemy import select, func, distinct
-
         stmt = select(
             QuizAttempt.quiz_id,
             func.count(QuizAttempt.id).label("total_attempts"),
             func.avg(
                 (QuizAttempt.score * 100.0) / QuizAttempt.total_questions
             ).label("average_score"),
-            func.count(distinct(QuizAttempt.user_id)).label("unique_users")
+            func.count(func.distinct(QuizAttempt.user_id)).label("unique_users")
         ).where(
             QuizAttempt.company_id == company_id
         ).group_by(
@@ -209,14 +279,8 @@ class QuizAttemptRepository(BaseRepository[QuizAttempt]):
             for row in rows
         ]
 
-    async def get_user_company_quiz_stats_sql(
-            self,
-            user_id: UUID,
-            company_id: UUID
-    ) -> dict:
+    async def get_user_company_quiz_stats_sql(self, user_id: UUID, company_id: UUID) -> dict:
         """Get user statistics in specific company using SQL aggregation"""
-        from sqlalchemy import select, func
-
         overall_stmt = select(
             func.count(QuizAttempt.id).label("total_attempts"),
             func.avg(
