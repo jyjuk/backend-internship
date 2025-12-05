@@ -270,7 +270,8 @@ backend-internship/
 │   │       ├── company_requests.py       # Company request endpoints
 │   │       ├── company_members.py        # Company member endpoints
 │   │       ├── quizzes.py                # Quiz and quiz attempt endpoints
-│   │       └── exports.py                # Data export endpoints
+│   │       ├── exports.py                # Data export endpoints
+│   │       └── analytics.py              # Analytics endpoints
 │   ├── core/                             # Core functionality
 │   │   ├── config.py                     # Configuration management
 │   │   ├── database.py                   # PostgreSQL async connection
@@ -312,14 +313,16 @@ backend-internship/
 │   │   ├── quiz_service.py               # Quiz service
 │   │   ├── quiz_attempt_service.py       # Quiz attempt service
 │   │   ├── redis_service.py              # Redis service for temporary storage
-│   │   └── export_service.py             # Export service for JSON/CSV formats
+│   │   ├── export_service.py             # Export service for JSON/CSV formats
+│   │   └── analytics_service.py          # Analytics service for statistics
 │   ├── schemas/                          # Pydantic schemas
 │   │   ├── health.py                     # Health check schemas
 │   │   ├── user.py                       # User schemas
 │   │   ├── auth.py                       # Authentication schemas
 │   │   ├── company.py                    # Company schemas
 │   │   ├── company_action.py             # Company action schemas
-│   │   └── quiz.py                       # Quiz schemas
+│   │   ├── quiz.py                       # Quiz schemas
+│   │   └── analytics.py                  # Analytics schemas
 │   └── main.py                           # Application entry point
 ├── alembic/                              # Database migrations
 │   ├── versions/                         # Migration files
@@ -1293,6 +1296,247 @@ uuid1,uuid2,uuid3,uuid4,"[""uuid5"",""uuid6""]",true,2024-01-15T10:30:00Z
 - User must be company member for user-specific exports
 - Empty results return empty array (JSON) or empty string (CSV)
 - Only responses stored in Redis are exported (within 48h)
+
+### Analytics
+
+Comprehensive analytics system for quiz performance tracking with weekly trends, providing insights for users and company administrators.
+
+#### Analytics Permissions
+
+**Users:**
+- Can view their own overall statistics across all companies
+- Can view detailed analytics for each quiz they've taken
+- Can view their recent quiz attempts
+
+**Owners/Admins:**
+- Can view company overview analytics with trends
+- Can view all company members' statistics
+- Can view all company quizzes' performance
+- Can view detailed analytics for specific users in their company
+
+#### User Analytics Endpoints
+
+**Get My Overall Analytics**
+```bash
+GET /analytics/users/me/overall
+Authorization: Bearer <your_token>
+```
+View overall rating - average score across all quizzes from all companies.
+
+**Response:**
+```json
+{
+  "average_score": 75.5,
+  "total_attempts": 45,
+  "total_companies": 3,
+  "total_quizzes_taken": 15
+}
+```
+
+---
+
+**Get My Quiz Analytics**
+```bash
+GET /analytics/users/me/quizzes
+Authorization: Bearer <your_token>
+```
+View average scores for each quiz with weekly trends.
+
+**Response:**
+```json
+{
+  "quizzes": [
+    {
+      "quiz_id": "uuid",
+      "quiz_title": "Python Basics",
+      "company_id": "uuid",
+      "company_name": "Tech Corp",
+      "average_score": 80.0,
+      "attempts_count": 5,
+      "last_attempt_at": "2024-12-02T10:30:00Z",
+      "weekly_trend": [
+        {"week": "2024-W48", "avg_score": 75.0, "attempts": 2},
+        {"week": "2024-W49", "avg_score": 85.0, "attempts": 3}
+      ]
+    }
+  ]
+}
+```
+
+---
+
+**Get My Recent Attempts**
+```bash
+GET /analytics/users/me/recent-attempts?limit=10
+Authorization: Bearer <your_token>
+```
+View list of recent quiz attempts with timestamps.
+
+**Query Parameters:**
+- `limit` - Number of attempts (1-50, default: 10)
+
+**Response:**
+```json
+{
+  "attempts": [
+    {
+      "quiz_id": "uuid",
+      "quiz_title": "Python Basics",
+      "company_name": "Tech Corp",
+      "score": 8,
+      "total_questions": 10,
+      "percentage": 80.0,
+      "completed_at": "2024-12-02T10:30:00Z"
+    }
+  ]
+}
+```
+
+#### Company Analytics Endpoints (Owner/Admin)
+
+**Get Company Overview**
+```bash
+GET /analytics/companies/{company_id}/overview
+Authorization: Bearer <your_token>
+```
+View company overview with weekly trends (owner/admin only).
+
+**Response:**
+```json
+{
+  "company_id": "uuid",
+  "company_name": "Tech Corp",
+  "total_members": 25,
+  "total_quizzes": 10,
+  "total_attempts": 250,
+  "average_company_score": 75.5,
+  "weekly_trend": [
+    {"week": "2024-W48", "avg_score": 73.0, "attempts": 50},
+    {"week": "2024-W49", "avg_score": 78.0, "attempts": 60}
+  ]
+}
+```
+
+---
+
+**Get Company Members Analytics**
+```bash
+GET /analytics/companies/{company_id}/members
+Authorization: Bearer <your_token>
+```
+View statistics for all company members with last attempt times (owner/admin only).
+
+**Response:**
+```json
+{
+  "members": [
+    {
+      "user_id": "uuid",
+      "username": "john_doe",
+      "email": "john@example.com",
+      "total_attempts": 15,
+      "average_score": 82.5,
+      "last_attempt_at": "2024-12-02T10:30:00Z"
+    }
+  ]
+}
+```
+
+---
+
+**Get Company Quizzes Analytics**
+```bash
+GET /analytics/companies/{company_id}/quizzes
+Authorization: Bearer <your_token>
+```
+View performance analytics for all company quizzes with completion rates (owner/admin only).
+
+**Response:**
+```json
+{
+  "quizzes": [
+    {
+      "quiz_id": "uuid",
+      "quiz_title": "Python Basics",
+      "total_attempts": 25,
+      "average_score": 75.5,
+      "completion_rate": 80.0,
+      "weekly_trend": [
+        {"week": "2024-W48", "avg_score": 73.0, "attempts": 10},
+        {"week": "2024-W49", "avg_score": 78.0, "attempts": 15}
+      ]
+    }
+  ]
+}
+```
+
+---
+
+**Get User Analytics in Company**
+```bash
+GET /analytics/companies/{company_id}/users/{user_id}
+Authorization: Bearer <your_token>
+```
+View detailed analytics for specific user in company with quiz-by-quiz breakdown (owner/admin only).
+
+**Response:**
+```json
+{
+  "user_id": "uuid",
+  "username": "john_doe",
+  "company_id": "uuid",
+  "company_name": "Tech Corp",
+  "total_attempts": 15,
+  "average_score": 82.5,
+  "quizzes": [
+    {
+      "quiz_id": "uuid",
+      "quiz_title": "Python Basics",
+      "company_id": "uuid",
+      "company_name": "Tech Corp",
+      "average_score": 85.0,
+      "attempts_count": 5,
+      "last_attempt_at": "2024-12-02T10:30:00Z",
+      "weekly_trend": [
+        {"week": "2024-W48", "avg_score": 80.0, "attempts": 2},
+        {"week": "2024-W49", "avg_score": 90.0, "attempts": 3}
+      ]
+    }
+  ]
+}
+```
+
+#### Analytics Features
+
+**Weekly Trends:**
+- ISO week format: `2024-W48`
+- Groups attempts by calendar week
+- Calculates average score per week
+- Tracks number of attempts per week
+- Sorted chronologically
+
+**Metrics Calculated:**
+- **Average Score**: (total_correct / total_questions) × 100
+- **Completion Rate**: (unique_users_attempted / total_members) × 100
+- **Overall Rating**: Average across all quizzes and companies
+- **Attempts Count**: Total number of quiz submissions
+
+**Data Sources:**
+- PostgreSQL `quiz_attempts` table (permanent storage)
+- Real-time calculations via SQL aggregations
+- No caching - always fresh data
+
+#### Analytics Business Rules
+
+- User analytics available to all authenticated users (own data only)
+- Company analytics require owner or admin role
+- Weekly trends calculated from all historical attempts
+- Zero values returned when no data available (not errors)
+- Completion rate based on unique users (one user = one completion)
+- Last attempt timestamp from most recent submission
+- Average scores rounded to 2 decimal places
+- Trends sorted chronologically (oldest to newest)
+- Member verification required for user-specific company analytics
 
 ### Testing with Swagger UI
 

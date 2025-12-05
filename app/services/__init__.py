@@ -8,6 +8,7 @@ from app.services.quiz_service import QuizService
 from app.services.quiz_attempt_service import QuizAttemptService
 from app.services.redis_service import RedisService
 from app.services.export_service import ExportService
+from app.services.analytics_service import AnalyticsService
 
 __all__ = [
     "UserService",
@@ -19,5 +20,6 @@ __all__ = [
     "QuizService",
     "QuizAttemptService",
     "RedisService",
-    "ExportService"
+    "ExportService",
+    "AnalyticsService"
 ]

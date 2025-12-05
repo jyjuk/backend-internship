@@ -52,6 +52,20 @@ from app.schemas.quiz import (
     QuizResponseDetail,
     QuizResponsesList
 )
+from app.schemas.analytics import (
+    WeeklyTrend,
+    UserOverallAnalytics,
+    QuizAnalytics,
+    UserQuizAnalyticsList,
+    RecentAttempt,
+    RecentAttemptsList,
+    CompanyOverviewAnalytics,
+    MemberAnalytics,
+    CompanyMemberAnalyticsList,
+    CompanyQuizAnalytics,
+    CompanyQuizzesAnalytics,
+    UserInCompanyAnalytics
+)
 
 __all__ = [
     "HealthResponse",
@@ -95,5 +109,17 @@ __all__ = [
     "UserCompanyStats",
     "UserQuizStats",
     "QuizResponseDetail",
-    "QuizResponsesList"
+    "QuizResponsesList",
+    "WeeklyTrend",
+    "UserOverallAnalytics",
+    "QuizAnalytics",
+    "UserQuizAnalyticsList",
+    "RecentAttempt",
+    "RecentAttemptsList",
+    "CompanyOverviewAnalytics",
+    "MemberAnalytics",
+    "CompanyMemberAnalyticsList",
+    "CompanyQuizAnalytics",
+    "CompanyQuizzesAnalytics",
+    "UserInCompanyAnalytics"
 ]
