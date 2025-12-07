@@ -66,6 +66,14 @@ from app.schemas.analytics import (
     CompanyQuizzesAnalytics,
     UserInCompanyAnalytics
 )
+from app.schemas.notification import (
+    NotificationBase,
+    NotificationCreate,
+    NotificationResponse,
+    NotificationList,
+    NotificationMarkRead,
+    UnreadCountResponse
+)
 
 __all__ = [
     "HealthResponse",
@@ -121,5 +129,11 @@ __all__ = [
     "CompanyMemberAnalyticsList",
     "CompanyQuizAnalytics",
     "CompanyQuizzesAnalytics",
-    "UserInCompanyAnalytics"
+    "UserInCompanyAnalytics",
+    "NotificationBase",
+    "NotificationCreate",
+    "NotificationResponse",
+    "NotificationList",
+    "NotificationMarkRead",
+    "UnreadCountResponse"
 ]

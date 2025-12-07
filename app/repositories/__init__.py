@@ -7,6 +7,7 @@ from app.repositories.quiz import QuizRepository
 from app.repositories.question import QuestionRepository
 from app.repositories.answer import AnswerRepository
 from app.repositories.quiz_attempt import QuizAttemptRepository
+from app.repositories.notification import NotificationRepository
 
 __all__ = [
     "UserRepository",
@@ -17,5 +18,6 @@ __all__ = [
     "QuizRepository",
     "QuestionRepository",
     "AnswerRepository",
-    "QuizAttemptRepository"
+    "QuizAttemptRepository",
+    "NotificationRepository"
 ]

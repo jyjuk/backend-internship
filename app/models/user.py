@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from app.models.company_invitation import CompanyInvitation
     from app.models.company_request import CompanyRequest
     from app.models.quiz_attempt import QuizAttempt
+    from app.models.notification import Notification
 
 
 class User(Base, UUIDMixin, TimestampMixin):
@@ -37,6 +38,7 @@ class User(Base, UUIDMixin, TimestampMixin):
     )
     company_requests: Mapped[List["CompanyRequest"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     quiz_attempts: Mapped[List["QuizAttempt"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    notifications: Mapped[List["Notification"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email}, username={self.username})>"
