@@ -150,7 +150,24 @@ class NotificationService:
                 for user_id in member_ids
             ]
 
-            await self.notification_repo.create_bulk_notifications(notifications_data)
+            created_notifications = await self.notification_repo.create_bulk_notifications(notifications_data)
+
+            from app.core.websocket import manager
+
+            for notification in created_notifications:
+                ws_message = {
+                    "type": "new_notification",
+                    "notification": {
+                        "id": str(notification.id),
+                        "message": notification.message,
+                        "notification_type": notification.notification_type,
+                        "is_read": notification.is_read,
+                        "created_at": notification.created_at.isoformat(),
+                        "related_entity_id": str(
+                            notification.related_entity_id) if notification.related_entity_id else None
+                    }
+                }
+                await manager.send_personal_notification(notification.user_id, ws_message)
 
             logger.info(
                 f"Created {len(member_ids)} notifications for quiz {quiz_id} "

@@ -273,7 +273,8 @@ backend-internship/
 │   │       ├── quizzes.py                # Quiz and quiz attempt endpoints
 │   │       ├── exports.py                # Data export endpoints
 │   │       ├── analytics.py              # Analytics endpoints
-│   │       └── notifications.py          # Notification endpoints
+│   │       ├── notifications.py          # Notification endpoints
+│   │       └── ws.py                     # WebSocket endpoints  
 │   ├── core/                             # Core functionality
 │   │   ├── config.py                     # Configuration management
 │   │   ├── database.py                   # PostgreSQL async connection
@@ -282,7 +283,8 @@ backend-internship/
 │   │   ├── auth0.py                      # Auth0 token verification
 │   │   ├── dependencies.py               # FastAPI dependencies (auth)
 │   │   ├── middleware.py                 # Middleware setup (CORS, etc.)
-│   │   └── logging_config.py             # Logging configuration
+│   │   ├── logging_config.py             # Logging configuration
+│   │   └── websocket.py                  # WebSocket connection manager
 │   ├── models/                           # SQLAlchemy models
 │   │   ├── base.py                       # Base mixins (UUID, Timestamp)
 │   │   ├── user.py                       # User model
@@ -1732,6 +1734,132 @@ Authorization: Bearer <your_token>
   "updated_count": 5
 }
 ```
+
+### WebSocket Real-Time Notifications
+
+#### WebSocket Connection
+
+Connect to receive real-time notifications:
+
+```bash
+ws://localhost:8000/ws/notifications?token=<your_jwt_access_token>
+```
+
+**Connection Example (JavaScript):**
+
+```javascript
+const token = "your_jwt_access_token";
+const ws = new WebSocket(`ws://localhost:8000/ws/notifications?token=${token}`);
+
+ws.onopen = () => {
+    console.log("Connected to notifications");
+};
+
+ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    console.log("Notification received:", data);
+
+    if (data.type === "new_notification") {
+        // Handle new notification
+        console.log("New notification:", data.notification);
+    }
+};
+
+ws.onerror = (error) => {
+    console.error("WebSocket error:", error);
+};
+
+ws.onclose = () => {
+    console.log("Disconnected from notifications");
+};
+
+// Send ping to keep connection alive
+setInterval(() => {
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send("ping");
+    }
+}, 30000); // Every 30 seconds
+```
+
+#### WebSocket Message Types
+
+**Connection Established:**
+
+```json
+{
+  "type": "connection_established",
+  "message": "Connected to notifications for user john_doe"
+}
+```
+
+**New Notification (Real-time):**
+
+```json
+{
+  "type": "new_notification",
+  "notification": {
+    "id": "uuid",
+    "message": "New quiz 'Python Basics' has been created in TechCorp. Take it now!",
+    "notification_type": "quiz_created",
+    "is_read": false,
+    "created_at": "2024-12-05T10:30:00.000Z",
+    "related_entity_id": "quiz-uuid"
+  }
+}
+```
+
+**Pong (Keep-Alive Response):**
+
+```json
+{
+  "type": "pong"
+}
+```
+
+#### WebSocket Features
+
+- **Real-time delivery**: Notifications sent instantly when created
+- **Authentication**: JWT token required via query parameter
+- **Multiple connections**: User can have multiple active WebSocket connections
+- **Auto-reconnect**: Client should implement reconnection logic
+- **Keep-alive**: Send "ping" messages every 30 seconds to keep connection active
+- **Graceful disconnect**: Proper cleanup on connection close
+- **Connection manager**: Manages all active user connections centrally
+
+#### WebSocket Error Codes
+
+- `1008` - Policy Violation
+    - Invalid token
+    - User not found
+    - Inactive user
+    - Authentication failed
+
+#### WebSocket Architecture
+
+```
+Quiz Created by Owner/Admin
+    ↓
+NotificationService.notify_quiz_created()
+    ↓
+Create notifications in PostgreSQL
+    ↓
+Send real-time via WebSocket (ConnectionManager)
+    ↓
+Broadcast to all user's active connections
+    ↓
+Frontend receives instant notification
+```
+
+#### WebSocket vs REST
+
+| Feature | WebSocket | REST API |
+|---------|-----------|----------|
+| Delivery | Real-time (instant) | Polling required |
+| Connection | Persistent | Request/Response |
+| Overhead | Low (after initial connection) | High (each request) |
+| Use Case | Live notifications | Fetch historical |
+
+---
 
 ### Automatic Notifications
 
