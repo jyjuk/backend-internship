@@ -9,7 +9,9 @@ from app.api.routes import (
     company_members,
     quizzes,
     exports,
-    analytics
+    analytics,
+    notifications,
+    ws
 )
 
 
@@ -25,3 +27,5 @@ def include_routers(app: FastAPI) -> None:
     app.include_router(quizzes.router)
     app.include_router(exports.router)
     app.include_router(analytics.router)
+    app.include_router(notifications.router)
+    app.include_router(ws.router)

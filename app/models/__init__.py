@@ -8,6 +8,7 @@ from app.models.quiz import Quiz
 from app.models.question import Question
 from app.models.answer import Answer
 from app.models.quiz_attempt import QuizAttempt
+from app.models.notification import Notification
 
 __all__ = [
     "User",
@@ -22,5 +23,6 @@ __all__ = [
     "Quiz",
     "Question",
     "Answer",
-    "QuizAttempt"
+    "QuizAttempt",
+    "Notification"
 ]

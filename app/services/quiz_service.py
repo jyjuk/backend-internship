@@ -55,8 +55,8 @@ class QuizService:
         """Create a new quiz (owner or admin only)"""
         try:
             await self._check_owner_or_admin(company_id, user.id)
+            company = await self.company_repo.get_by_id(company_id)
 
-            # Create quiz
             quiz = Quiz(
                 company_id=company_id,
                 title=quiz_data.title,
@@ -81,6 +81,22 @@ class QuizService:
                         order=answer_data.order
                     )
                     await self.answer_repo.create(answer)
+
+            try:
+                from app.services.notification_service import NotificationService
+                notification_service = NotificationService(self.session)
+
+                notified_count = await notification_service.notify_quiz_created(
+                    quiz_id=quiz.id,
+                    quiz_title=quiz.title,
+                    company_id=company_id,
+                    company_name=company.name,
+                    creator_id=user.id
+                )
+
+                logger.info(f"Sent {notified_count} notifications for quiz {quiz.id}")
+            except Exception as e:
+                logger.error(f"Failed to send notifications for quiz {quiz.id}: {str(e)}")
 
             complete_quiz = await self.quiz_repo.get_quiz_with_questions(quiz.id)
             logger.info(f"Quiz created: {quiz.id} in company {company_id}")
