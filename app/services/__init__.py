@@ -10,6 +10,7 @@ from app.services.redis_service import RedisService
 from app.services.export_service import ExportService
 from app.services.analytics_service import AnalyticsService
 from app.services.notification_service import NotificationService
+from app.services.scheduled_quiz_reminder import ScheduledQuizReminderService
 
 __all__ = [
     "UserService",
@@ -23,5 +24,6 @@ __all__ = [
     "RedisService",
     "ExportService",
     "AnalyticsService",
-    "NotificationService"
+    "NotificationService",
+    "ScheduledQuizReminderService"
 ]

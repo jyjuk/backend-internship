@@ -11,6 +11,7 @@ from app.api.routes import include_routers
 from app.core.middleware import setup_cors
 from app.core.redis import get_redis_client, close_redis_client
 from app.core.logging_config import setup_logging
+from app.core.scheduler import start_scheduler, shutdown_scheduler
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -20,14 +21,20 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Lifespan context manager for startup and shutdown events"""
     logger.info("Starting application")
 
     redis_client = await get_redis_client()
     logger.info(f"Redis connected: {await redis_client.ping()}")
 
+    start_scheduler()
+    logger.info("Scheduler started")
+
     yield
 
     logger.info("Shutting down...")
+    shutdown_scheduler()
+    logger.info("Scheduler shut down")
     await close_redis_client()
     logger.info("Redis connection closed")
 
