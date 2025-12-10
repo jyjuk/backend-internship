@@ -257,7 +257,6 @@ pytest -v
 ```
 
 ## Project Structure
-
 ```
 backend-internship/
 ├── app/
@@ -274,7 +273,8 @@ backend-internship/
 │   │       ├── exports.py                # Data export endpoints
 │   │       ├── analytics.py              # Analytics endpoints
 │   │       ├── notifications.py          # Notification endpoints
-│   │       └── ws.py                     # WebSocket endpoints  
+│   │       ├── ws.py                     # WebSocket endpoints
+│   │       └── scheduler.py              # Scheduler manual trigger endpoint
 │   ├── core/                             # Core functionality
 │   │   ├── config.py                     # Configuration management
 │   │   ├── database.py                   # PostgreSQL async connection
@@ -284,7 +284,8 @@ backend-internship/
 │   │   ├── dependencies.py               # FastAPI dependencies (auth)
 │   │   ├── middleware.py                 # Middleware setup (CORS, etc.)
 │   │   ├── logging_config.py             # Logging configuration
-│   │   └── websocket.py                  # WebSocket connection manager
+│   │   ├── websocket.py                  # WebSocket connection manager
+│   │   └── scheduler.py                  # APScheduler configuration
 │   ├── models/                           # SQLAlchemy models
 │   │   ├── base.py                       # Base mixins (UUID, Timestamp)
 │   │   ├── user.py                       # User model
@@ -308,7 +309,8 @@ backend-internship/
 │   │   ├── question.py                   # Question repository
 │   │   ├── answer.py                     # Answer repository
 │   │   ├── quiz_attempt.py               # Quiz attempt repository
-│   │   └── notification.py               # Notification repository
+│   │   ├── notification.py               # Notification repository
+│   │   └── scheduled_check.py            # Scheduled check repository
 │   ├── services/                         # Business logic layer
 │   │   ├── user.py                       # User service
 │   │   ├── auth.py                       # Authentication service
@@ -321,7 +323,8 @@ backend-internship/
 │   │   ├── redis_service.py              # Redis service for temporary storage
 │   │   ├── export_service.py             # Export service for JSON/CSV formats
 │   │   ├── analytics_service.py          # Analytics service for statistics
-│   │   └── notification_service.py       # Notification service
+│   │   ├── notification_service.py       # Notification service
+│   │   └── scheduled_quiz_reminder.py    # Scheduled quiz reminder service
 │   ├── schemas/                          # Pydantic schemas
 │   │   ├── health.py                     # Health check schemas
 │   │   ├── user.py                       # User schemas
@@ -2136,6 +2139,245 @@ Access Swagger UI at http://localhost:8000/docs:
     - Try GET /users/me (view your profile)
     - Try PUT /users/me (update your username/password)
     - Try DELETE /users/me (delete your account)
+
+## Scheduled Quiz Reminders
+
+### Overview
+
+Automated scheduler that runs daily at midnight to check if users have completed their quizzes within the required 24-hour timeframe and sends reminder notifications.
+
+### Features
+
+- **Automatic scheduling** - runs every day at 00:00 (midnight)
+- **24-hour requirement** - users must complete each available quiz every 24 hours
+- **Bulk processing** - checks all active users and their available quizzes
+- **Smart notifications** - sends reminders only for incomplete quizzes
+- **WebSocket support** - real-time delivery for online users
+- **Manual trigger** - testing endpoint for development
+- **Stats tracking** - monitors performance and errors
+
+### How It Works
+```
+Every day at 00:00 (midnight)
+    ↓
+Scheduler triggers scheduled_quiz_reminder_job()
+    ↓
+ScheduledCheckRepository.get_users_pending_quizzes()
+    ↓
+For each active user:
+    - Get all available quizzes (via company membership)
+    - Check last attempt time for each quiz
+    - If never attempted OR >24h ago → add to pending list
+    ↓
+For each pending quiz:
+    - Create notification in database
+    - Send via WebSocket if user online
+    ↓
+Return stats (users_checked, pending_quizzes, notifications_sent, errors)
+```
+
+### Scheduler Configuration
+
+**Technology:** APScheduler (AsyncIOScheduler)
+
+**Schedule:** Daily at midnight (00:00)
+
+**Cron Expression:** `CronTrigger(hour=0, minute=0)`
+
+**Job Name:** "Daily Quiz Reminder Check"
+
+### Notification Details
+
+**Notification Type:** `quiz_reminder`
+
+**Message Format:**
+```
+Reminder: Complete quiz '{quiz_title}' in {company_name}. You need to take this quiz every 24 hours!
+```
+
+**Delivery:**
+- Database storage (permanent)
+- WebSocket broadcast (real-time for online users)
+- Accessible via `/notifications` endpoint
+
+### Manual Testing Endpoint
+
+For development and testing purposes, you can manually trigger the scheduler:
+```bash
+POST /scheduler/trigger-quiz-reminder
+Authorization: Bearer <your_token>
+```
+
+**Response:**
+```json
+{
+  "message": "Quiz reminder check completed",
+  "stats": {
+    "users_checked": 150,
+    "pending_quizzes": 45,
+    "notifications_sent": 45,
+    "errors": 0
+  }
+}
+```
+
+### Stats Explanation
+
+- **users_checked** - Number of unique users with pending quizzes
+- **pending_quizzes** - Total number of quiz reminders needed
+- **notifications_sent** - Successfully created and sent notifications
+- **errors** - Number of errors encountered during processing
+
+### Architecture
+
+**Repository Layer:**
+- `ScheduledCheckRepository` - Database queries for pending quizzes
+  - `get_all_active_users()` - Fetch all active users
+  - `get_user_available_quizzes(user_id)` - Get quizzes user can access
+  - `get_last_quiz_attempt_time(user_id, quiz_id)` - Check last completion
+  - `get_users_pending_quizzes()` - Main query for pending list
+  - `get_company_name(company_id)` - Get company name for message
+
+**Service Layer:**
+- `ScheduledQuizReminderService` - Business logic
+  - `check_and_notify_pending_quizzes()` - Main scheduled task
+  - `_send_reminder_notification(pending)` - Send single notification
+
+**Scheduler:**
+- `app/core/scheduler.py` - APScheduler configuration
+  - `scheduled_quiz_reminder_job()` - Async job function
+  - `start_scheduler()` - Initialize and start scheduler
+  - `shutdown_scheduler()` - Graceful shutdown
+
+### Integration
+
+Scheduler is integrated with FastAPI lifespan:
+```python
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    start_scheduler()
+    logger.info("Scheduler started")
+    
+    yield
+    
+    # Shutdown
+    shutdown_scheduler()
+    logger.info("Scheduler shut down")
+```
+
+### Business Rules
+
+- **24-hour cycle** - Each quiz must be completed every 24 hours
+- **Company membership** - Users only receive reminders for quizzes in their companies
+- **Active users only** - Inactive users are excluded from checks
+- **First-time users** - Users who never attempted a quiz also receive reminders
+- **Idempotent** - Safe to run multiple times (no duplicate notifications)
+- **Error handling** - Errors logged but don't stop processing other users
+- **WebSocket optional** - Notifications stored in DB even if WebSocket fails
+
+### Logging
+
+Scheduler logs include:
+```
+INFO - Scheduler started: Quiz reminder job scheduled for daily at midnight
+INFO - Running scheduled quiz reminder job
+INFO - Checking 150 active users for pending quizzes
+INFO - Found 45 pending quiz reminders
+INFO - Created reminder notification {id} for user {username}
+INFO - Scheduled job completed: 150 users, 45 pending quizzes, 45 notifications sent, 0 errors
+```
+
+### Testing
+
+**Unit Tests:** `tests/test_scheduled_quiz_reminder.py`
+```bash
+pytest tests/test_scheduled_quiz_reminder.py -v
+```
+
+**Test Coverage:**
+- Service methods verification
+- Stats structure validation
+- Empty pending list handling
+- Repository methods verification
+- Scheduler module imports
+- Job function existence
+
+**Manual Testing:**
+1. Login to get access token
+2. Call `POST /scheduler/trigger-quiz-reminder`
+3. Check response stats
+4. Verify notifications via `GET /notifications`
+5. Check logs for execution details
+
+### Configuration
+
+**Changing Schedule:**
+
+Edit `app/core/scheduler.py`:
+```python
+# Every minute (testing)
+CronTrigger(minute='*')
+
+# Every 5 minutes
+CronTrigger(minute='*/5')
+
+# Every hour
+CronTrigger(hour='*', minute=0)
+
+# Daily at specific time
+CronTrigger(hour=0, minute=0)  # Midnight (production)
+CronTrigger(hour=9, minute=0)  # 9 AM
+```
+
+### Monitoring
+
+**Check scheduler status:**
+```bash
+docker-compose logs app | grep scheduler
+```
+
+**Watch for job executions:**
+```bash
+docker-compose logs app -f | grep "scheduled quiz reminder"
+```
+
+**Verify next run time:**
+
+Scheduler automatically calculates next run based on cron expression. Check logs for:
+```
+INFO - Added job "Daily Quiz Reminder Check" to job store "default"
+```
+
+### Troubleshooting
+
+**Scheduler not starting:**
+- Check logs: `docker-compose logs app`
+- Verify APScheduler installed: `pip list | grep APScheduler`
+- Ensure lifespan called in main.py
+
+**No reminders sent:**
+- Check if users exist and are active
+- Verify company memberships
+- Confirm quizzes exist in database
+- Check last attempt times (must be >24h)
+
+**Errors during execution:**
+- Check database connection
+- Verify notification repository works
+- Review error logs for specific issues
+- Test manual trigger to debug
+
+### Future Enhancements
+
+- Email notifications integration
+- Configurable reminder intervals per quiz
+- User preferences for reminder frequency
+- SMS notifications support
+- Slack/Teams integration
+- Dashboard for scheduler monitoring
+- Multiple notification languages
+- Customizable message templates
 
 ## Authors
 
