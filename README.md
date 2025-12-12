@@ -259,6 +259,9 @@ pytest -v
 ## Project Structure
 ```
 backend-internship/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml                    # GitHub Actions CI/CD workflow
 ├── app/
 │   ├── api/
 │   │   └── routes/                       # API routes
@@ -338,17 +341,21 @@ backend-internship/
 ├── alembic/                              # Database migrations
 │   ├── versions/                         # Migration files
 │   └── env.py                            # Alembic configuration
-├── tests/                                # Test files
+├── aws/                                  # AWS deployment files
+│   ├── README.md                         # AWS infrastructure documentation
+│   └── task-definition.json             # ECS Fargate task configuration
+├── tests/                                # Test files (163 tests total)
 ├── logs/                                 # Application logs (excluded from git)
 ├── .env                                  # Environment variables (not in git)
 ├── .env.sample                           # Environment template
 ├── .dockerignore                         # Docker ignore rules
 ├── .gitignore                            # Git ignore rules
-├── Dockerfile                            # Docker configuration
-├── docker-compose.yml                    # Docker Compose configuration
+├── Dockerfile                            # Local development Docker image
+├── Dockerfile.production                 # Production-optimized Docker image
+├── docker-compose.yml                    # Local environment orchestration
 ├── alembic.ini                           # Alembic configuration
 ├── requirements.txt                      # Python dependencies
-└── README.md
+└── README.md                             # This file
 ```
 
 ## Development Workflow
@@ -2378,6 +2385,223 @@ INFO - Added job "Daily Quiz Reminder Check" to job store "default"
 - Dashboard for scheduler monitoring
 - Multiple notification languages
 - Customizable message templates
+
+
+## 🚀 Deployment
+
+### AWS Infrastructure
+
+Application is deployed on AWS with the following services:
+
+#### Databases
+- **PostgreSQL 15.15** (Amazon RDS)
+  - Instance: `backend-internship-db`
+  - Region: eu-central-1
+- **Redis 7.1.0** (Amazon ElastiCache)
+  - Cluster: `backend-internship-redis`
+  - Region: eu-central-1
+
+#### Application
+- **Container Registry**: Amazon ECR
+- **Orchestration**: Amazon ECS Fargate
+- **Compute**: 256 CPU, 512 MB Memory
+- **Region**: eu-central-1 (Frankfurt)
+
+#### Live API
+**Current deployment IP**: See AWS ECS Console or GitHub Actions logs
+```bash
+# Get current public IP
+aws ecs list-tasks --cluster backend-cluster --service-name backend-service --region eu-central-1
+aws ecs describe-tasks --cluster backend-cluster --tasks <TASK_ARN> --region eu-central-1
+```
+
+**Endpoints:**
+- API Root: `http://<PUBLIC_IP>:8000`
+- API Documentation: `http://<PUBLIC_IP>:8000/docs`
+- OpenAPI Schema: `http://<PUBLIC_IP>:8000/openapi.json`
+
+---
+
+## 🔄 CI/CD Pipeline
+
+### GitHub Actions Workflow
+
+**File**: `.github/workflows/deploy.yml`
+
+**Trigger**: Automatic deployment on push to `develop` branch
+
+**Pipeline Steps:**
+1. 🔍 Checkout code
+2. 🔐 Configure AWS credentials
+3. 🐳 Build Docker image (`Dockerfile.production`)
+4. 📦 Push image to Amazon ECR
+5. 🚀 Update ECS task definition
+6. ✅ Deploy to ECS Fargate
+7. ⏳ Wait for service stability
+
+**Deployment Status**: Check [Actions tab](../../actions) for latest runs
+
+---
+
+## 🛠️ Development Setup
+
+### Local Development (Docker Compose)
+```bash
+# Start all services
+docker-compose up -d
+
+# Run migrations
+docker-compose exec app alembic upgrade head
+
+# View logs
+docker-compose logs -f app
+
+# Stop services
+docker-compose down
+```
+
+**Access:**
+- API: http://localhost:8000
+- API Docs: http://localhost:8000/docs
+- PostgreSQL: localhost:5432
+- Redis: localhost:6379
+
+### Running Tests
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=app tests/
+
+# Run specific test file
+pytest tests/test_user_service.py -v
+```
+
+**Test Coverage**: 163 tests (112 unit tests + 51 integration tests)
+
+---
+
+## 🌍 Environment Variables
+
+### Local Development (`.env`)
+See `.env.sample` for required variables
+
+### Production (AWS ECS)
+Environment variables configured in `aws/task-definition.json`:
+- Database connections (RDS, ElastiCache)
+- JWT secrets
+- Auth0 configuration
+- CORS settings
+
+**Security Note**: Credentials are not committed to repository
+
+---
+
+## 📊 Monitoring & Logs
+
+### CloudWatch Logs
+```bash
+# View live logs
+aws logs tail /ecs/backend-task --follow --region eu-central-1
+
+# View specific time range
+aws logs tail /ecs/backend-task --since 1h --region eu-central-1
+```
+
+### Service Health
+```bash
+# Check ECS service status
+aws ecs describe-services \
+  --cluster backend-cluster \
+  --services backend-service \
+  --region eu-central-1
+
+# Check running tasks
+aws ecs list-tasks \
+  --cluster backend-cluster \
+  --service-name backend-service \
+  --region eu-central-1
+```
+
+---
+
+## 💰 Cost Optimization
+
+All AWS services configured within Free Tier limits:
+
+| Service | Free Tier | Configuration |
+|---------|-----------|---------------|
+| RDS PostgreSQL | 750 hours/month | db.t3.micro |
+| ElastiCache Redis | 750 hours/month | cache.t3.micro |
+| ECS Fargate | 750 hours/month | 0.25 vCPU, 0.5 GB |
+| ECR Storage | 10 GB | Docker images |
+| Data Transfer | 100 GB/month | Outbound |
+
+**Estimated Monthly Cost**: $0 (within Free Tier)
+
+**Cost Monitoring**: AWS Billing Dashboard
+
+---
+
+## 🔐 Security
+
+### Network Security
+- RDS Security Group: Allows PostgreSQL (5432) from ECS
+- ElastiCache Security Group: Allows Redis (6379) from ECS
+- ECS Security Group: Allows HTTP (8000) from internet
+
+### Application Security
+- JWT-based authentication
+- Auth0 integration for OAuth
+- Password hashing with bcrypt
+- CORS configuration
+- Environment-based secrets
+
+### Recommendations for Production
+- [ ] Add Application Load Balancer (ALB)
+- [ ] Configure custom domain with Route53
+- [ ] Enable SSL/TLS with ACM certificate
+- [ ] Restrict database access to VPC only
+- [ ] Enable AWS CloudTrail for audit logs
+- [ ] Configure AWS WAF for API protection
+
+---
+
+## 📚 Additional Documentation
+
+- [AWS Setup Guide](./aws/README.md) - Detailed AWS infrastructure documentation
+- [API Documentation](http://<PUBLIC_IP>:8000/docs) - Interactive Swagger UI
+- [Database Migrations](./alembic/README) - Alembic migration guide
+
+---
+
+## 🤝 Contributing
+
+1. Create a feature branch from `develop`
+2. Make your changes
+3. Write/update tests
+4. Ensure all tests pass: `pytest`
+5. Create a Pull Request to `develop`
+6. Wait for CI/CD checks and code review
+7. After approval, changes will auto-deploy to AWS
+
+---
+
+## 📝 Development Workflow
+```mermaid
+graph LR
+    A[Local Dev] -->|git push| B[GitHub]
+    B -->|PR to develop| C[Code Review]
+    C -->|Merge| D[GitHub Actions]
+    D -->|Build| E[Docker Image]
+    E -->|Push| F[AWS ECR]
+    F -->|Deploy| G[ECS Fargate]
+    G -->|Running| H[Production API]
+```
+
+---
+
 
 ## Authors
 
