@@ -5,3 +5,9 @@ __pycache__/
 logs/
 *.log
 __pycache__
+aws/rds-credentials.txt
+aws/*-credentials.txt 
+aws/*-config.txt
+aws/aws-resources.txt 
+aws/rds-connection.txt 
+.env.production
