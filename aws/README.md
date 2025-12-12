@@ -46,9 +46,73 @@ Both services are within AWS Free Tier:
 
 Monitor usage in AWS Console: Billing Dashboard
 
-## Next Steps
 
-1. ✅ Databases created
-2. ⏳ Deploy application to ECS/Fargate
-3. ⏳ Setup GitHub Actions for CI/CD (BE-20)
-4. ⏳ Configure domain and SSL
+## ECS Deployment
+
+### Resources
+- **ECR Repository**: 809641219603.dkr.ecr.eu-central-1.amazonaws.com/backend-internship
+- **ECS Cluster**: backend-cluster
+- **ECS Service**: backend-service
+- **Task Definition**: backend-task:1
+
+### Application Access
+- **Public IP**: Check ECS Console for current IP
+- **API URL**: http://<PUBLIC_IP>:8000
+- **API Docs**: http://<PUBLIC_IP>:8000/docs
+
+### Manual Deployment Commands
+
+**Build and Push Docker Image:**
+```bash
+# Login to ECR
+aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 809641219603.dkr.ecr.eu-central-1.amazonaws.com
+
+# Build
+docker build -f Dockerfile.production -t backend-internship:latest .
+
+# Tag
+docker tag backend-internship:latest 809641219603.dkr.ecr.eu-central-1.amazonaws.com/backend-internship:latest
+
+# Push
+docker push 809641219603.dkr.ecr.eu-central-1.amazonaws.com/backend-internship:latest
+```
+
+**Force New Deployment:**
+```bash
+aws ecs update-service --cluster backend-cluster --service backend-service --force-new-deployment --region eu-central-1
+```
+
+**Get Task Public IP:**
+```bash
+# List tasks
+aws ecs list-tasks --cluster backend-cluster --service-name backend-service --region eu-central-1
+
+# Get task details
+aws ecs describe-tasks --cluster backend-cluster --tasks <TASK_ARN> --region eu-central-1
+
+# Get public IP from ENI
+aws ec2 describe-network-interfaces --network-interface-ids <ENI_ID> --region eu-central-1 --query "NetworkInterfaces[0].Association.PublicIp" --output text
+```
+
+## GitHub Actions CI/CD
+
+Automated deployment configured in `.github/workflows/deploy.yml`
+
+**Trigger**: Push to `develop` branch
+
+**Process**:
+1. Build Docker image
+2. Push to ECR
+3. Update ECS task definition
+4. Deploy to ECS service
+
+## Cost Monitoring
+
+**Current Monthly Costs** (estimated):
+- RDS PostgreSQL: ~$0 (Free Tier 750h)
+- ElastiCache Redis: ~$0 (Free Tier 750h)
+- ECS Fargate: ~$0 (Free Tier 750h)
+- ECR Storage: ~$0 (Free Tier 10GB)
+- Data Transfer: Minimal
+
+**Total**: Within AWS Free Tier limits
