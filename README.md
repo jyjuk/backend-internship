@@ -273,6 +273,7 @@ backend-internship/
 │   │       ├── company_requests.py       # Company request endpoints
 │   │       ├── company_members.py        # Company member endpoints
 │   │       ├── quizzes.py                # Quiz and quiz attempt endpoints
+│   │       ├── imports.py                # Excel quiz import endpoint
 │   │       ├── exports.py                # Data export endpoints
 │   │       ├── analytics.py              # Analytics endpoints
 │   │       ├── notifications.py          # Notification endpoints
@@ -323,6 +324,7 @@ backend-internship/
 │   │   ├── company_member_service.py     # Company member service
 │   │   ├── quiz_service.py               # Quiz service
 │   │   ├── quiz_attempt_service.py       # Quiz attempt service
+│   │   ├── excel_import_service.py       # Excel quiz import service
 │   │   ├── redis_service.py              # Redis service for temporary storage
 │   │   ├── export_service.py             # Export service for JSON/CSV formats
 │   │   ├── analytics_service.py          # Analytics service for statistics
@@ -335,6 +337,7 @@ backend-internship/
 │   │   ├── company.py                    # Company schemas
 │   │   ├── company_action.py             # Company action schemas
 │   │   ├── quiz.py                       # Quiz schemas
+│   │   ├── imports.py                    # Excel import schemas
 │   │   ├── analytics.py                  # Analytics schemas
 │   │   └── notification.py               # Notification schemas
 │   └── main.py                           # Application entry point
@@ -344,7 +347,7 @@ backend-internship/
 ├── aws/                                  # AWS deployment files
 │   ├── README.md                         # AWS infrastructure documentation
 │   └── task-definition.json             # ECS Fargate task configuration
-├── tests/                                # Test files (163 tests total)
+├── tests/                                # Test files (171 tests total)
 ├── logs/                                 # Application logs (excluded from git)
 ├── .env                                  # Environment variables (not in git)
 ├── .env.sample                           # Environment template
@@ -2355,6 +2358,81 @@ Scheduler automatically calculates next run based on cron expression. Check logs
 ```
 INFO - Added job "Daily Quiz Reminder Check" to job store "default"
 ```
+## Excel Quiz Import
+
+### Overview
+Import quizzes from Excel files to quickly populate your quiz database. Supports both creating new quizzes and updating existing ones.
+
+### Excel File Format
+
+**Required Columns:**
+- `quiz_title` - Title of the quiz
+- `question_text` - Text of the question
+- `question_order` - Order/position of the question (1, 2, 3, ...)
+- `answer_text` - Text of the answer
+- `is_correct` - TRUE or FALSE
+- `answer_order` - Order/position of the answer (1, 2, 3, ...)
+
+**Optional Columns:**
+- `quiz_description` - Description of the quiz
+
+### Excel File Example
+
+| quiz_title | quiz_description | question_text | question_order | answer_text | is_correct | answer_order |
+|------------|------------------|---------------|----------------|-------------|------------|--------------|
+| Python Basics | Introduction to Python | What is Python? | 1 | A programming language | TRUE | 1 |
+| Python Basics | Introduction to Python | What is Python? | 1 | A snake | FALSE | 2 |
+| Python Basics | Introduction to Python | Is Python easy? | 2 | Yes | TRUE | 1 |
+| Python Basics | Introduction to Python | Is Python easy? | 2 | No | FALSE | 2 |
+
+### Import Rules
+
+**Validation:**
+- Each quiz must have at least 2 questions
+- Each question must have 2-4 answers
+- Each question must have at least 1 correct answer
+
+**Update Logic:**
+- If a quiz with the same `quiz_title` exists in the company → **UPDATE** (replaces all questions/answers)
+- If the quiz title is new → **CREATE** new quiz
+
+**Permissions:**
+- Only company **owner** or **admin** can import quizzes
+
+### API Usage
+
+**Endpoint:**
+```
+POST /companies/{company_id}/quizzes/import
+```
+
+**Example using cURL:**
+```bash
+curl -X 'POST' \
+  'http://localhost:8000/companies/{company_id}/quizzes/import' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: multipart/form-data' \
+  -F 'file=@quiz_import.xlsx'
+```
+
+**Response:**
+```json
+{
+  "created": 1,
+  "updated": 0,
+  "total": 1,
+  "errors": []
+}
+```
+
+### Creating Test Excel File
+
+Run the Python script to generate a test Excel file:
+```bash
+python create_test_excel.py
+```
+
+This creates `test_quiz_import.xlsx` with 20 Python programming questions.
 
 ### Troubleshooting
 

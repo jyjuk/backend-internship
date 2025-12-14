@@ -12,7 +12,8 @@ from app.api.routes import (
     analytics,
     notifications,
     ws,
-    scheduler
+    scheduler,
+    imports
 )
 
 
@@ -31,3 +32,4 @@ def include_routers(app: FastAPI) -> None:
     app.include_router(notifications.router)
     app.include_router(ws.router)
     app.include_router(scheduler.router)
+    app.include_router(imports.router, tags=["imports"])
