@@ -66,3 +66,17 @@ class QuizRepository(BaseRepository[Quiz]):
         stmt = select(Quiz).where(Quiz.id.in_(quiz_ids))
         result = await self.session.execute(stmt)
         return result.scalars().all()
+
+    async def get_by_title_and_company(
+            self,
+            title: str,
+            company_id: UUID
+    ) -> Optional[Quiz]:
+        """Get quiz by title and company ID"""
+        result = await self.session.execute(
+            select(Quiz).where(
+                Quiz.title == title,
+                Quiz.company_id == company_id
+            )
+        )
+        return result.scalar_one_or_none()
