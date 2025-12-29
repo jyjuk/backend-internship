@@ -536,21 +536,49 @@ Authorization: Bearer <your_token>
 
 Deletes a user from the database. Requires authentication.
 
-### Self-Management Endpoints
+## Self-Management Endpoints
 
-Users can manage their own profiles through dedicated `/users/me` endpoints:
+Users can manage their own profiles through dedicated `/users/me` endpoints with extended profile support.
 
-#### Get Own Profile
+### Extended Profile Fields
 
+The User model includes optional extended profile fields:
+
+- `first_name` (String, max 100 chars) - User's first name
+- `last_name` (String, max 100 chars) - User's last name
+- `bio` (Text) - User biography/about section
+- `avatar_url` (String, max 500 chars) - URL to user's avatar image
+- `phone` (String, max 20 chars) - Contact phone number
+
+All extended fields are optional and can be updated independently.
+
+### Get Own Profile
 ```bash
 GET /users/me
 Authorization: Bearer <your_token>
 ```
 
-Returns current user's profile information.
+Returns current user's profile information with all extended fields.
 
-#### Update Own Profile
+**Response:**
+```json
+{
+  "id": "uuid",
+  "email": "user@example.com",
+  "username": "username",
+  "is_active": true,
+  "is_superuser": false,
+  "created_at": "2024-01-15T10:00:00Z",
+  "updated_at": "2024-01-15T11:30:00Z",
+  "first_name": "John",
+  "last_name": "Doe",
+  "bio": "Software developer passionate about Python and FastAPI",
+  "avatar_url": "https://example.com/avatars/johndoe.jpg",
+  "phone": "+380123456789"
+}
+```
 
+### Update Own Profile
 ```bash
 PUT /users/me
 Authorization: Bearer <your_token>
@@ -558,20 +586,50 @@ Content-Type: application/json
 
 {
   "username": "newusername",
-  "password": "newpassword123"
+  "password": "newpassword123",
+  "first_name": "John",
+  "last_name": "Doe",
+  "bio": "Software developer passionate about Python and FastAPI",
+  "avatar_url": "https://example.com/avatars/johndoe.jpg",
+  "phone": "+380123456789"
 }
 ```
 
-Updates current user's username and/or password. Both fields are optional.
+Updates current user's username, password, and/or extended profile fields. All fields are optional.
 
 **Restrictions:**
 
-- Users can only update their own username and password
+- Users can only update their own profile
 - Email and is_active fields cannot be modified via this endpoint
 - Returns 403 Forbidden if attempting to modify another user's profile
 
-#### Delete Own Profile
+**Use Cases:**
 
+Complete profile update:
+```json
+{
+  "first_name": "Ivan",
+  "last_name": "Havrylyshyn",
+  "bio": "Backend developer with Python and FastAPI experience",
+  "phone": "+380671234567"
+}
+```
+
+Partial update:
+```json
+{
+  "bio": "Updated bio only"
+}
+```
+
+Clear field:
+```json
+{
+  "phone": null
+}
+```
+
+### Delete Own Profile
 ```bash
 DELETE /users/me
 Authorization: Bearer <your_token>
@@ -583,6 +641,25 @@ Deletes current user's account.
 
 - Users can only delete their own profile
 - Returns 403 Forbidden if attempting to delete another user's profile
+
+### Database Schema
+```python
+class User:
+    id: UUID
+    email: str (unique, indexed)
+    username: str (unique, indexed)
+    hashed_password: str
+    is_active: bool
+    is_superuser: bool
+    
+    first_name: str | None
+    last_name: str | None
+    bio: str | None
+    avatar_url: str | None
+    phone: str | None
+    created_at: datetime
+    updated_at: datetime
+```
 
 ## Company CRUD Operations
 
