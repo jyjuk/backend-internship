@@ -132,7 +132,6 @@ class UserService:
     async def update_self(self, current_user: User, data: UserSelfUpdateRequest) -> UserDetail:
         """Update current user's own profile (username and/or password only)"""
         try:
-            # Використовуємо self.repository замість self.user_repository
             if data.username is not None:
                 existing_user = await self.repository.get_by_username(data.username)
                 if existing_user and existing_user.id != current_user.id:
@@ -142,6 +141,20 @@ class UserService:
             if data.password is not None:
                 current_user.hashed_password = hash_password(data.password)
 
+            if data.first_name is not None:
+                current_user.first_name = data.first_name
+
+            if data.last_name is not None:
+                current_user.last_name = data.last_name
+
+            if data.bio is not None:
+                current_user.bio = data.bio
+
+            if data.avatar_url is not None:
+                current_user.avatar_url = data.avatar_url
+
+            if data.phone is not None:
+                current_user.phone = data.phone
             updated_user = await self.repository.update(current_user)
             logger.info(f"User {current_user.id} updated their own profile")
             return UserDetail.model_validate(updated_user)

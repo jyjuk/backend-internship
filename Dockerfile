@@ -18,4 +18,4 @@ COPY .env.sample .env
 
 EXPOSE 8000
 
-CMD ["python", "-m", "app.main"]
+CMD ["sh", "-c", "alembic upgrade head && python -m app.main"]

@@ -37,6 +37,12 @@ class UserDetail(UserBase):
     created_at: datetime
     updated_at: datetime
 
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    phone: Optional[str] = None
+
     model_config = ConfigDict(from_attributes=True)
 
     @field_serializer("id")
@@ -66,3 +72,9 @@ class UserSelfUpdateRequest(BaseModel):
     """Schema for self update user"""
     username: Optional[str] = Field(None, min_length=3, max_length=100)
     password: Optional[str] = Field(None, min_length=8, max_length=100)
+
+    first_name: Optional[str] = Field(None, max_length=100)
+    last_name: Optional[str] = Field(None, max_length=100)
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = Field(None, max_length=500)
+    phone: Optional[str] = Field(None, max_length=20)
