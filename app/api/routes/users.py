@@ -4,9 +4,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, status, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_current_user_optional
 from app.services.user import UserService
 from app.schemas.user import (SignUpRequest, UserUpdateRequest, UserDetail, UserList, UserSelfUpdateRequest)
+from app.schemas.company import CompanyList
 from app.models.user import User
 from app.services.quiz_attempt_service import QuizAttemptService
 from app.schemas.quiz import UserSystemStats
@@ -87,6 +88,27 @@ async def delete_user(user_id: UUID, db: AsyncSession = Depends(get_db)):
     """Delete user"""
     service = UserService(db)
     await service.delete_user(user_id)
+
+
+@router.get("/{user_id}/companies", response_model=CompanyList)
+async def get_user_companies(
+        user_id: UUID,
+        skip: int = Query(0, ge=0, description="Number of records to skip"),
+        limit: int = Query(100, ge=1, le=100, description="Maximum number of records"),
+        current_user: Optional[User] = Depends(get_current_user_optional),
+        db: AsyncSession = Depends(get_db)
+):
+    """
+    Get user's companies with visibility rules:
+    - Own profile: returns ALL companies (public + private)
+    - Other user's profile: returns ONLY public companies
+    - Not authenticated: returns ONLY public companies
+    """
+    from app.services.company import CompanyService
+    service = CompanyService(db)
+
+    current_user_id = current_user.id if current_user else None
+    return await service.get_user_companies_visible(user_id, current_user_id, skip, limit)
 
 
 @router.get("/me/quiz-stats", response_model=UserSystemStats)

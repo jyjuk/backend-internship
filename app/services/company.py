@@ -1,5 +1,6 @@
 import logging
 from uuid import UUID
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from app.models.company import Company
@@ -145,4 +146,59 @@ class CompanyService:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to delete company"
+            )
+
+    async def get_user_companies(
+            self,
+            user_id: UUID,
+            skip: int = 0,
+            limit: int = 100
+    ) -> CompanyList:
+        """Get all companies where user is owner or member (includes private)"""
+        try:
+            companies = await self.repository.get_user_all_companies(user_id, skip, limit)
+            total = await self.repository.count_user_all_companies(user_id)
+            logger.info(f"Retrieved {len(companies)} companies for user {user_id} (total: {total})")
+            return CompanyList(
+                companies=[CompanySchema.model_validate(company) for company in companies],
+                total=total
+            )
+        except Exception as e:
+            logger.error(f"Error getting user companies: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to retrieve user companies"
+            )
+
+    async def get_user_companies_visible(
+            self,
+            user_id: UUID,
+            current_user_id: Optional[UUID] = None,
+            skip: int = 0,
+            limit: int = 100
+    ) -> CompanyList:
+        """
+        Get user's companies with visibility check
+        - If current_user_id == user_id: return ALL companies (public + private)
+        - If current_user_id != user_id: return ONLY public companies
+        """
+        try:
+            if current_user_id and current_user_id == user_id:
+                companies = await self.repository.get_user_all_companies(user_id, skip, limit)
+                total = await self.repository.count_user_all_companies(user_id)
+                logger.info(f"Retrieved {len(companies)} companies (including private) for user {user_id}")
+            else:
+                companies = await self.repository.get_user_public_companies(user_id, skip, limit)
+                total = await self.repository.count_user_public_companies(user_id)
+                logger.info(f"Retrieved {len(companies)} public companies for user {user_id}")
+
+            return CompanyList(
+                companies=[CompanySchema.model_validate(company) for company in companies],
+                total=total
+            )
+        except Exception as e:
+            logger.error(f"Error getting user companies: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to retrieve user companies"
             )

@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 from uuid import UUID
 from contextlib import asynccontextmanager
-from fastapi import Depends, HTTPException, status, WebSocket, Query
+from fastapi import Depends, HTTPException, status, WebSocket, Query, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db, AsyncSessionLocal
@@ -69,6 +69,42 @@ async def get_current_user(
             detail="Inactive user"
         )
     return user
+
+
+async def get_current_user_optional(
+        authorization: Optional[str] = Header(None),
+        db: AsyncSession = Depends(get_db)
+) -> Optional[User]:
+    """Get current user if authenticated, None otherwise"""
+    if not authorization:
+        return None
+
+    token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else authorization
+
+    try:
+        payload = verify_auth0_token(token)
+
+        if payload is None:
+            payload = decode_access_token(token)
+
+        if payload is None:
+            return None
+
+        email: Optional[str] = payload.get("email") or payload.get("sub")
+
+        if email is None:
+            return None
+
+        repository = UserRepository(db)
+        user = await repository.get_by_email(email)
+
+        if user is None or not user.is_active:
+            return None
+
+        return user
+    except Exception as e:
+        logger.warning(f"Error getting optional user: {str(e)}")
+        return None
 
 
 def get_auth_service(db: AsyncSession = Depends(get_db)):
