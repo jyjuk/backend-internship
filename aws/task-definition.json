@@ -1,0 +1,127 @@
+{
+  "family": "backend-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::809641219603:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "backend-app",
+      "image": "809641219603.dkr.ecr.eu-central-1.amazonaws.com/backend-internship:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "APP_NAME",
+          "value": "BackendInternship"
+        },
+        {
+          "name": "DEBUG",
+          "value": "False"
+        },
+        {
+          "name": "ENVIRONMENT",
+          "value": "production"
+        },
+        {
+          "name": "HOST",
+          "value": "0.0.0.0"
+        },
+        {
+          "name": "PORT",
+          "value": "8000"
+        },
+        {
+          "name": "POSTGRES_USER",
+          "value": "postgres"
+        },
+        {
+          "name": "POSTGRES_PASSWORD",
+          "value": "BackendIntern2024!Secure"
+        },
+        {
+          "name": "POSTGRES_HOST",
+          "value": "backend-internship-db.cvu0ss0asvz3.eu-central-1.rds.amazonaws.com"
+        },
+        {
+          "name": "POSTGRES_PORT",
+          "value": "5432"
+        },
+        {
+          "name": "POSTGRES_DB",
+          "value": "internship_db"
+        },
+        {
+          "name": "REDIS_HOST",
+          "value": "backend-internship-redis.ljzqoe.0001.euc1.cache.amazonaws.com"
+        },
+        {
+          "name": "REDIS_PORT",
+          "value": "6379"
+        },
+        {
+          "name": "REDIS_DB",
+          "value": "0"
+        },
+        {
+          "name": "JWT_SECRET_KEY",
+          "value": "your-production-jwt-secret-change-this"
+        },
+        {
+          "name": "JWT_REFRESH_SECRET_KEY",
+          "value": "your-production-refresh-secret-change-this"
+        },
+        {
+          "name": "JWT_ALGORITHM",
+          "value": "HS256"
+        },
+        {
+          "name": "JWT_ACCESS_TOKEN_EXPIRE_MINUTES",
+          "value": "30"
+        },
+        {
+          "name": "JWT_REFRESH_TOKEN_EXPIRE_DAYS",
+          "value": "7"
+        },
+        {
+          "name": "AUTH0_DOMAIN",
+          "value": "dev-zorn300x5d11itwv.us.auth0.com"
+        },
+        {
+          "name": "AUTH0_API_AUDIENCE",
+          "value": "https://backend-internship-api"
+        },
+        {
+          "name": "AUTH0_ISSUER",
+          "value": "https://dev-zorn300x5d11itwv.us.auth0.com/"
+        },
+        {
+          "name": "AUTH0_ALGORITHMS",
+          "value": "RS256"
+        },
+        {
+          "name": "SECRET_KEY",
+          "value": "your-production-secret-key-change-this"
+        },
+        {
+          "name": "CORS_ORIGINS",
+          "value": "*"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/backend-task",
+          "awslogs-region": "eu-central-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,174 @@
+from pydantic import BaseModel, Field, ConfigDict, field_validator
+from uuid import UUID
+from datetime import datetime
+from typing import List, Dict, Any
+
+
+class AnswerCreate(BaseModel):
+    """Schema for creating answer"""
+    text: str = Field(..., min_length=1, max_length=500, description="Answer text")
+    is_correct: bool = Field(..., description="Is this answer correct")
+    order: int = Field(..., ge=0, description="Answer order")
+
+
+class AnswerResponse(BaseModel):
+    """Answer response schema"""
+    id: UUID
+    question_id: UUID
+    text: str
+    is_correct: bool
+    order: int
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class QuestionCreate(BaseModel):
+    """Schema for creating question"""
+    title: str = Field(..., min_length=1, max_length=1000, description="Question title")
+    order: int = Field(..., ge=0, description="Question order")
+    answers: List[AnswerCreate] = Field(..., min_length=2, max_length=4, description="List of answers (2-4)")
+
+    @field_validator("answers")
+    @classmethod
+    def validate_answer(cls, answers: List[AnswerCreate]) -> List[AnswerCreate]:
+        """Validate that at least one answer is correct"""
+        if not any(answer.is_correct for answer in answers):
+            raise ValueError("at least one answer must be correct")
+        return answers
+
+
+class QuestionResponse(BaseModel):
+    """Question response schema"""
+    id: UUID
+    quiz_id: UUID
+    title: str
+    order: int
+    answers: List[AnswerResponse]
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class QuizCreate(BaseModel):
+    """Schema for creating quiz"""
+    title: str = Field(..., min_length=1, max_length=255, description="Quiz title")
+    description: str | None = Field(None, max_length=2000, description="Quiz description")
+    questions: List[QuestionCreate] = Field(..., min_length=2, description="list of questions")
+
+
+class QuizUpdate(BaseModel):
+    """Schema for updating quiz"""
+    title: str | None = Field(None, min_length=1, max_length=255, description="Quiz title")
+    description: str | None = Field(None, max_length=2000, description="Quiz description")
+    questions: List[QuestionCreate] | None = Field(None, min_length=2, description="List of questions (min 2)")
+
+    @field_validator("questions")
+    @classmethod
+    def validate_questions(cls, questions: List[QuestionCreate] | None) -> List[QuestionCreate] | None:
+        """Validate questions if provided"""
+        if questions is not None and len(questions) < 2:
+            raise ValueError("Quiz must have at least 2 questions")
+        return questions
+
+
+class QuizResponse(BaseModel):
+    """Quiz response schema"""
+    id: UUID
+    company_id: UUID
+    title: str
+    description: str | None
+    frequency: int
+    questions: List[QuestionResponse]
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class QuizList(BaseModel):
+    """List of quizzes"""
+    quizzes: List[QuizResponse]
+    total: int
+
+
+class AnswerSubmission(BaseModel):
+    """Schema for submitting answer to a question"""
+    question_id: UUID = Field(..., description="Question ID")
+    answer_ids: List[UUID] = Field(..., min_length=1, description="Select answer IDs")
+
+
+class QuizSubmission(BaseModel):
+    """Schema for submitting answers"""
+    answers: List[AnswerSubmission] = Field(..., min_length=1, description="List of answers")
+
+
+class QuizAttemptResponse(BaseModel):
+    """Quiz attempt result response"""
+    id: UUID
+    user_id: UUID
+    quiz_id: UUID
+    company_id: UUID
+    score: int
+    total_questions: int
+    correct_answers: int
+    percentage: float
+    completed_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserQuizStats(BaseModel):
+    """User quiz statistics"""
+    total_attempts: int
+    total_questions_answered: int
+    total_correct_answers: int
+    average_score: float
+    last_attempt_at: datetime | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserCompanyStats(BaseModel):
+    """User statistic within a company"""
+    company_id: UUID
+    company_name: str
+    stats: UserQuizStats
+
+
+class UserSystemStats(BaseModel):
+    """User statistic across all companies"""
+    stats: UserQuizStats
+    companies_participated: int
+
+
+class QuizResponseDetail(BaseModel):
+    """Detailed quiz response from Redis"""
+    user_id: UUID
+    company_id: UUID
+    quiz_id: UUID
+    question_id: UUID
+    answer_ids: List[UUID]
+    is_correct: bool
+    answered_at: datetime
+
+    @classmethod
+    def from_redis(cls, data: Dict[str, Any]) -> "QuizResponseDetail":
+        """Create from Redis JSON data"""
+        return cls(
+            user_id=UUID(data["user_id"]),
+            company_id=UUID(data["company_id"]),
+            quiz_id=UUID(data["quiz_id"]),
+            question_id=UUID(data["question_id"]),
+            answer_ids=[UUID(aid) for aid in data["answer_ids"]],
+            is_correct=data["is_correct"],
+            answered_at=datetime.fromisoformat(data["answered_at"])
+        )
+
+
+class QuizResponsesList(BaseModel):
+    """List of quiz response from Redis"""
+    responses: List[QuizResponseDetail]
+    total: int
